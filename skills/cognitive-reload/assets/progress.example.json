@@ -1,0 +1,31 @@
+{
+  "schema_version": "0.4.0",
+  "github_login": "octocat",
+  "repository": {
+    "host": "github.com",
+    "owner": "example",
+    "name": "telemetry-service",
+    "target_ref": "main",
+    "target_commit": "64c504d"
+  },
+  "updated_at": "2026-06-22T15:00:00Z",
+  "orientation": "explored",
+  "topics": {
+    "event_journey": {
+      "state": "explored",
+      "concepts_seen": ["trust boundary", "server-side identity stamping"],
+      "code_anchors": ["apps/api/routers/events.py:_scope_agent_event"],
+      "self_reported_confidence": null,
+      "verified_score": null,
+      "assessment_attempts": []
+    }
+  },
+  "learner_questions": [
+    {"topic": "event_journey", "question": "Is metadata validation recursive?", "status": "unresolved"}
+  ],
+  "unresolved_questions": ["Whether nested metadata is validated recursively"],
+  "resume": {
+    "summary": "Mapped the event journey and explored server-side tenant/device scoping.",
+    "next_anchor": "schemas.py:UsageEventIn metadata validator"
+  }
+}

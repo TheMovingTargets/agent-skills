@@ -1,0 +1,108 @@
+{
+  "schema_version": "0.3.0",
+  "skill": {
+    "name": "cognitive-reload",
+    "version": "0.3.0"
+  },
+  "session": {
+    "id": "2026-06-19-example-team",
+    "created_at": "2026-06-19T21:30:00Z",
+    "mode": "weekly_reload",
+    "output_mode": "report_only",
+    "repo": {
+      "name": "example-repo",
+      "branch": "main",
+      "head": "abc1234",
+      "base": "def5678",
+      "dirty_state": "clean"
+    },
+    "developer_mode": "team",
+    "developers": [
+      {
+        "developer_id": "alice",
+        "display_name": "Alice"
+      },
+      {
+        "developer_id": "bob",
+        "display_name": "Bob"
+      }
+    ]
+  },
+  "git_evidence": {
+    "prior_artifacts_found": true,
+    "commands_run": [],
+    "window": {
+      "type": "since_last_reload",
+      "description": "Since 2026-06-12"
+    },
+    "commits": [],
+    "changed_files": []
+  },
+  "overall": {
+    "status": "partial",
+    "provisional_score": 3.9,
+    "verified_area_count": 3,
+    "unverified_area_count": 1,
+    "agent_handoff_threshold": 4.0,
+    "agent_handoff_ready": false,
+    "reason": "One critical area has only single-person coverage and one area remains unverified."
+  },
+  "areas": [
+    {
+      "area_id": "api_surface",
+      "area_name": "API surface",
+      "status": "verified",
+      "classification": "changed_area",
+      "importance": "high",
+      "risk_level": "medium",
+      "score": 4.2,
+      "dimensions": {},
+      "agent_handoff_ready": true,
+      "coverage": {
+        "alice": 4.2,
+        "bob": 3.0
+      },
+      "redundancy_count": 1,
+      "bus_factor_risk": true,
+      "why_selected": [
+        "changed area"
+      ],
+      "latest_attempt_id": "api_surface-alice-1",
+      "next_action": "cross-train Bob"
+    },
+    {
+      "area_id": "deployment",
+      "area_name": "Deployment",
+      "status": "unverified",
+      "classification": "sampled_stale_area",
+      "importance": "critical",
+      "risk_level": "critical",
+      "score": null,
+      "dimensions": {},
+      "agent_handoff_ready": false,
+      "coverage": {},
+      "redundancy_count": 0,
+      "bus_factor_risk": false,
+      "why_selected": [
+        "stale critical area"
+      ],
+      "latest_attempt_id": null,
+      "next_action": "team guided reload required"
+    }
+  ],
+  "evidence_ledgers": [],
+  "quiz_attempts": [],
+  "retake_policy": {
+    "retakes_allowed": true,
+    "current_score_uses": "latest_successful_verified_attempt",
+    "preserve_attempt_history": true
+  },
+  "adr_candidates": [],
+  "issue_candidates": [],
+  "next_actions": [
+    "Run deployment reload",
+    "Cross-train Bob on API surface"
+  ],
+  "tutorial_sessions": [],
+  "human_questions": []
+}

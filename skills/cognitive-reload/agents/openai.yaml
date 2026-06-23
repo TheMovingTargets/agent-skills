@@ -1,0 +1,3 @@
+interface:
+  display_name: "Cognitive Reload"
+  short_description: "Tutor through a codebase and remember your progress"

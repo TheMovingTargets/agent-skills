@@ -1,0 +1,373 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.invalid/cognitive-reload.schema.json",
+  "title": "cognitive-reload snapshot",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "skill",
+    "session",
+    "overall",
+    "areas",
+    "evidence_ledgers",
+    "quiz_attempts"
+  ],
+  "properties": {
+    "schema_version": {
+      "type": "string"
+    },
+    "skill": {
+      "type": "object",
+      "required": [
+        "name",
+        "version"
+      ],
+      "properties": {
+        "name": {
+          "const": "cognitive-reload"
+        },
+        "version": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": true
+    },
+    "session": {
+      "type": "object",
+      "required": [
+        "id",
+        "created_at",
+        "mode",
+        "output_mode",
+        "repo",
+        "developer_mode",
+        "developers"
+      ],
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "created_at": {
+          "type": "string"
+        },
+        "mode": {
+          "enum": [
+            "first_time_guided",
+            "weekly_reload",
+            "deep_reload",
+            "handoff_reload"
+          ]
+        },
+        "output_mode": {
+          "enum": [
+            "report_only",
+            "approved_artifact_creation"
+          ]
+        },
+        "repo": {
+          "type": "object"
+        },
+        "developer_mode": {
+          "enum": [
+            "solo",
+            "team"
+          ]
+        },
+        "developers": {
+          "type": "array"
+        }
+      },
+      "additionalProperties": true
+    },
+    "git_evidence": {
+      "type": "object"
+    },
+    "overall": {
+      "type": "object",
+      "required": [
+        "status",
+        "agent_handoff_ready"
+      ],
+      "properties": {
+        "status": {
+          "enum": [
+            "baseline_incomplete",
+            "partial",
+            "verified",
+            "stale",
+            "handoff_ready",
+            "not_ready"
+          ]
+        },
+        "provisional_score": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0,
+          "maximum": 5
+        },
+        "verified_area_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "unverified_area_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "agent_handoff_threshold": {
+          "type": "number"
+        },
+        "agent_handoff_ready": {
+          "type": "boolean"
+        },
+        "reason": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": true
+    },
+    "areas": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "area_id",
+          "area_name",
+          "status",
+          "agent_handoff_ready"
+        ],
+        "properties": {
+          "area_id": {
+            "type": "string"
+          },
+          "area_name": {
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "unverified",
+              "verified",
+              "partial",
+              "retake_available",
+              "stale"
+            ]
+          },
+          "classification": {
+            "enum": [
+              "changed_area",
+              "sampled_critical_area",
+              "sampled_stale_area",
+              "sampled_unverified_area",
+              "handoff_area"
+            ]
+          },
+          "importance": {
+            "enum": [
+              "low",
+              "medium",
+              "high",
+              "critical"
+            ]
+          },
+          "risk_level": {
+            "enum": [
+              "low",
+              "medium",
+              "high",
+              "critical"
+            ]
+          },
+          "score": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "minimum": 0,
+            "maximum": 5
+          },
+          "dimensions": {
+            "type": "object"
+          },
+          "agent_handoff_ready": {
+            "type": "boolean"
+          },
+          "why_selected": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "latest_attempt_id": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "next_action": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": true
+      }
+    },
+    "evidence_ledgers": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "area_id",
+          "area_name",
+          "classification",
+          "agent_confidence"
+        ],
+        "additionalProperties": true
+      }
+    },
+    "quiz_attempts": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": true
+      }
+    },
+    "retake_policy": {
+      "type": "object"
+    },
+    "adr_candidates": {
+      "type": "array"
+    },
+    "issue_candidates": {
+      "type": "array"
+    },
+    "next_actions": {
+      "type": "array"
+    },
+    "tutorial_sessions": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "tutorial_session_id",
+          "area_id",
+          "status",
+          "quiz_ready_confirmed"
+        ],
+        "properties": {
+          "tutorial_session_id": {
+            "type": "string"
+          },
+          "area_id": {
+            "type": "string"
+          },
+          "developer_id": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "status": {
+            "enum": [
+              "area_selected",
+              "walkthrough_in_progress",
+              "human_questions_open",
+              "quiz_ready_confirmed",
+              "quiz_in_progress",
+              "graded",
+              "retake_available",
+              "completed"
+            ]
+          },
+          "selected_ref": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "walkthrough_excerpts": {
+            "type": "array"
+          },
+          "human_questions": {
+            "type": "array"
+          },
+          "quiz_ready_confirmed": {
+            "type": "boolean"
+          },
+          "quiz_ready_phrase": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "additionalProperties": true
+      }
+    },
+    "human_questions": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "question_id",
+          "area_id",
+          "question",
+          "status"
+        ],
+        "properties": {
+          "question_id": {
+            "type": "string"
+          },
+          "area_id": {
+            "type": "string"
+          },
+          "developer_id": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "question": {
+            "type": "string"
+          },
+          "related_excerpt_id": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "related_path": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "answer_summary": {
+            "type": "string"
+          },
+          "evidence_basis": {
+            "type": "array"
+          },
+          "status": {
+            "enum": [
+              "answered",
+              "unresolved_from_git_evidence",
+              "deferred",
+              "follow_up_needed"
+            ]
+          },
+          "follow_up_needed": {
+            "type": "boolean"
+          },
+          "next_action": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "additionalProperties": true
+      }
+    }
+  },
+  "additionalProperties": true
+}

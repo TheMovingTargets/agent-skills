@@ -1,0 +1,13 @@
+{
+  "name": "cognitive-reload",
+  "version": "0.6.1",
+  "description": "Guided, resumable codebase tutoring with HITL cognition tracking.",
+  "author": {
+    "name": "TheMovingTargets"
+  },
+  "repository": "https://github.com/TheMovingTargets/cognitive-reload-skill",
+  "license": "MIT",
+  "skills": [
+    "./skills/cognitive-reload"
+  ]
+}

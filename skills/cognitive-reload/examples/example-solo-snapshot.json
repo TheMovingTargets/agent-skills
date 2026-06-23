@@ -1,0 +1,304 @@
+{
+  "schema_version": "0.3.0",
+  "skill": {
+    "name": "cognitive-reload",
+    "version": "0.3.0"
+  },
+  "session": {
+    "id": "2026-06-19-example-main-sidd",
+    "created_at": "2026-06-19T21:00:00Z",
+    "mode": "first_time_guided",
+    "output_mode": "report_only",
+    "repo": {
+      "name": "example-repo",
+      "branch": "main",
+      "head": "64c504d",
+      "base": null,
+      "dirty_state": "clean"
+    },
+    "developer_mode": "solo",
+    "developers": [
+      {
+        "developer_id": "sidd",
+        "display_name": "Sidd"
+      }
+    ]
+  },
+  "git_evidence": {
+    "prior_artifacts_found": false,
+    "commands_run": [
+      "git status --short",
+      "git log --oneline --decorate --max-count=30",
+      "find . -maxdepth 3 -type f ..."
+    ],
+    "window": {
+      "type": "first_time_baseline",
+      "description": "No prior artifact; repo structure sampled rather than latest-commit-only review."
+    },
+    "commits": [
+      {
+        "hash": "64c504d",
+        "summary": "Update AGENTS.md"
+      }
+    ],
+    "changed_files": [
+      "AGENTS.md"
+    ]
+  },
+  "overall": {
+    "status": "baseline_incomplete",
+    "provisional_score": null,
+    "verified_area_count": 1,
+    "unverified_area_count": 4,
+    "agent_handoff_threshold": 4.0,
+    "agent_handoff_ready": false,
+    "reason": "Only one area completed teach-back verification."
+  },
+  "areas": [
+    {
+      "area_id": "privacy_ingestion",
+      "area_name": "Privacy and event ingestion",
+      "status": "partial",
+      "classification": "sampled_unverified_area",
+      "importance": "critical",
+      "risk_level": "high",
+      "score": 3.5,
+      "dimensions": {
+        "orientation": 4,
+        "causal_understanding": 3,
+        "change_awareness": 3,
+        "risk_awareness": 4,
+        "test_awareness": 3,
+        "agent_guidance_readiness": 4
+      },
+      "agent_handoff_ready": false,
+      "why_selected": [
+        "first-time baseline",
+        "privacy-sensitive",
+        "dangerous for future agents to modify blindly"
+      ],
+      "latest_attempt_id": "privacy_ingestion-attempt-2",
+      "next_action": "retake device-scope/test-awareness question"
+    },
+    {
+      "area_id": "desktop_runtime",
+      "area_name": "Desktop runtime",
+      "status": "unverified",
+      "classification": "sampled_unverified_area",
+      "importance": "high",
+      "risk_level": "high",
+      "score": null,
+      "dimensions": {},
+      "agent_handoff_ready": false,
+      "why_selected": [
+        "first-time baseline",
+        "implementation/documentation uncertainty"
+      ],
+      "latest_attempt_id": null,
+      "next_action": "guided_reload_required"
+    }
+  ],
+  "evidence_ledgers": [
+    {
+      "ledger_id": "privacy_ingestion-2026-06-19",
+      "area_id": "privacy_ingestion",
+      "area_name": "Privacy and event ingestion",
+      "classification": "sampled_unverified_area",
+      "why_selected": [
+        "critical unverified area"
+      ],
+      "git_evidence": {
+        "commits": [],
+        "changed_files": [],
+        "sampled_files": [
+          "src/api/ingestion.rs",
+          "src/privacy/fingerprints.rs",
+          "tests/device_scoped_deletion.rs"
+        ]
+      },
+      "files_inspected": [
+        "src/api/ingestion.rs",
+        "src/privacy/fingerprints.rs"
+      ],
+      "tests_inspected": [
+        "tests/device_scoped_deletion.rs"
+      ],
+      "docs_inspected": [
+        "AGENTS.md"
+      ],
+      "observed_invariants": [
+        "raw content is not persisted",
+        "exact local paths are not persisted",
+        "deletion must be scoped by organization/user/device"
+      ],
+      "risk_drivers": [
+        "privacy boundary",
+        "multi-tenant scope"
+      ],
+      "unknowns": [
+        "desktop adapter lifecycle not yet verified"
+      ],
+      "agent_confidence": "medium"
+    }
+  ],
+  "quiz_attempts": [
+    {
+      "attempt_id": "privacy_ingestion-attempt-1",
+      "area_id": "privacy_ingestion",
+      "developer_id": "sidd",
+      "attempt_number": 1,
+      "questions": [
+        "Which file is the entry point for ingestion?",
+        "What invariant must hold before persistence?"
+      ],
+      "answer_summary": "Identified ingestion entry point and raw-content invariant; missed device-scoped deletion test.",
+      "coaching_before_attempt": false,
+      "scores": {
+        "orientation": 4,
+        "causal_understanding": 3,
+        "change_awareness": 3,
+        "risk_awareness": 3,
+        "test_awareness": 2,
+        "agent_guidance_readiness": 3
+      },
+      "area_score": 3.0,
+      "assessment": "partial",
+      "missing_concepts": [
+        "device-scoped deletion test"
+      ],
+      "retake_offered": true,
+      "retake_type": "targeted_retake",
+      "updates_verified_score": false
+    },
+    {
+      "attempt_id": "privacy_ingestion-attempt-2",
+      "area_id": "privacy_ingestion",
+      "developer_id": "sidd",
+      "attempt_number": 2,
+      "questions": [
+        "Why must deletion include device_id as well as org_id?"
+      ],
+      "answer_summary": "Explained cross-device deletion risk and agent guidance constraints.",
+      "coaching_before_attempt": false,
+      "scores": {
+        "orientation": 4,
+        "causal_understanding": 3,
+        "change_awareness": 3,
+        "risk_awareness": 4,
+        "test_awareness": 3,
+        "agent_guidance_readiness": 4
+      },
+      "area_score": 3.5,
+      "assessment": "partial",
+      "missing_concepts": [
+        "specific test name"
+      ],
+      "retake_offered": true,
+      "retake_type": "targeted_retake",
+      "updates_verified_score": true
+    }
+  ],
+  "retake_policy": {
+    "retakes_allowed": true,
+    "current_score_uses": "latest_successful_verified_attempt",
+    "preserve_attempt_history": true
+  },
+  "adr_candidates": [],
+  "issue_candidates": [
+    {
+      "id": "issue-candidate-2026-06-19-001",
+      "title": "Document desktop adapter lifecycle implementation status",
+      "status": "candidate",
+      "source": "cognitive-reload",
+      "related_area_ids": [
+        "desktop_runtime"
+      ],
+      "evidence": [
+        "AGENTS.md documents lifecycle; implementation not yet verified"
+      ],
+      "problem": "A future agent may assume the lifecycle is implemented because docs are complete.",
+      "suggested_acceptance_criteria": [
+        "Document current implemented lifecycle states",
+        "Add or identify tests for lifecycle transitions"
+      ],
+      "risk_level": "high",
+      "requires_developer_approval": true
+    }
+  ],
+  "next_actions": [
+    "Retake privacy_ingestion test-awareness question",
+    "Run guided reload for desktop_runtime",
+    "Run guided reload for recommendation boundary"
+  ],
+  "tutorial_sessions": [
+    {
+      "tutorial_session_id": "privacy_ingestion-tutorial-1",
+      "area_id": "privacy_ingestion",
+      "developer_id": "sidd",
+      "status": "completed",
+      "selected_ref": "main",
+      "started_at": "2026-06-19T21:05:00Z",
+      "completed_at": "2026-06-19T21:35:00Z",
+      "walkthrough_excerpts": [
+        {
+          "excerpt_id": "entry-point",
+          "path": "apps/api/ai_sommelier_api/routers/events.py",
+          "line_start": 40,
+          "line_end": 95,
+          "purpose": "Show the event ingestion entry point and authentication-derived scope.",
+          "what_to_notice": [
+            "server-side scope stamping",
+            "tenant/device boundary before persistence"
+          ],
+          "adjacent_files_or_tests": [
+            "tests/integration/test_agent_api.py"
+          ],
+          "agent_guidance_risks": [
+            "Do not trust organization, user, or device scope from raw client payloads."
+          ]
+        },
+        {
+          "excerpt_id": "privacy-validation",
+          "path": "apps/api/ai_sommelier_api/schemas.py",
+          "line_start": 1,
+          "line_end": 90,
+          "purpose": "Show metadata validation and raw-content/path exclusion rules.",
+          "what_to_notice": [
+            "unknown top-level fields rejected",
+            "metadata restrictions",
+            "fingerprint requirements"
+          ],
+          "adjacent_files_or_tests": [
+            "tests/unit/test_schemas.py"
+          ],
+          "agent_guidance_risks": [
+            "Do not relax schema validation to make ingestion easier."
+          ]
+        }
+      ],
+      "human_questions": [
+        "privacy_ingestion-question-1"
+      ],
+      "quiz_ready_confirmed": true,
+      "quiz_ready_phrase": "ready for quiz"
+    }
+  ],
+  "human_questions": [
+    {
+      "question_id": "privacy_ingestion-question-1",
+      "area_id": "privacy_ingestion",
+      "developer_id": "sidd",
+      "asked_at": "2026-06-19T21:20:00Z",
+      "question": "Why is device scope required in addition to organization scope?",
+      "related_excerpt_id": "entry-point",
+      "related_path": "apps/api/ai_sommelier_api/routers/events.py",
+      "answer_summary": "Device scope prevents one enrolled agent/device from deleting or attributing telemetry belonging to another device in the same organization.",
+      "evidence_basis": [
+        "tests/integration/test_agent_api.py device-scoped deletion test"
+      ],
+      "status": "answered",
+      "follow_up_needed": false,
+      "next_action": null
+    }
+  ]
+}

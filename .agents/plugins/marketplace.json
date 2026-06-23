@@ -1,0 +1,21 @@
+{
+  "name": "cognitive-reload-skills",
+  "plugins": [
+    {
+      "name": "cognitive-reload",
+      "source": {
+        "source": "local",
+        "path": "./"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Productivity",
+      "interface": {
+        "displayName": "Cognitive Reload",
+        "description": "Guided, resumable codebase tutoring with HITL cognition tracking."
+      }
+    }
+  ]
+}

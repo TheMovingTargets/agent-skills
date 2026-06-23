@@ -1,0 +1,72 @@
+{
+  "schema_version": "0.3.0",
+  "skill": {
+    "name": "cognitive-reload",
+    "version": "0.3.0"
+  },
+  "session": {
+    "id": "YYYY-MM-DD-repo-branch-developer",
+    "created_at": "YYYY-MM-DDTHH:MM:SSZ",
+    "mode": "first_time_guided",
+    "output_mode": "report_only",
+    "repo": {
+      "name": "",
+      "branch": "",
+      "head": "",
+      "base": null,
+      "dirty_state": "unknown"
+    },
+    "developer_mode": "solo",
+    "developers": []
+  },
+  "git_evidence": {
+    "prior_artifacts_found": false,
+    "commands_run": [],
+    "window": {
+      "type": "first_time_baseline",
+      "description": ""
+    },
+    "commits": [],
+    "changed_files": []
+  },
+  "overall": {
+    "status": "baseline_incomplete",
+    "provisional_score": null,
+    "verified_area_count": 0,
+    "unverified_area_count": 0,
+    "agent_handoff_threshold": 4.0,
+    "agent_handoff_ready": false,
+    "reason": "No areas have completed teach-back verification yet."
+  },
+  "areas": [
+    {
+      "area_id": "example_area",
+      "area_name": "Example critical area",
+      "status": "unverified",
+      "classification": "sampled_unverified_area",
+      "importance": "high",
+      "risk_level": "medium",
+      "score": null,
+      "dimensions": {},
+      "agent_handoff_ready": false,
+      "why_selected": [
+        "first-time baseline",
+        "critical area"
+      ],
+      "latest_attempt_id": null,
+      "next_action": "guided_reload_required"
+    }
+  ],
+  "evidence_ledgers": [],
+  "quiz_attempts": [],
+  "retake_policy": {
+    "retakes_allowed": true,
+    "current_score_uses": "latest_successful_verified_attempt",
+    "preserve_attempt_history": true
+  },
+  "adr_candidates": [],
+  "issue_candidates": [],
+  "next_actions": [],
+  "tutorial_sessions": [],
+  "human_questions": []
+}

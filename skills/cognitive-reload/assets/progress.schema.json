@@ -1,0 +1,52 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Cognitive Reload Learner Progress",
+  "type": "object",
+  "required": ["schema_version", "github_login", "repository", "updated_at", "topics", "resume"],
+  "properties": {
+    "schema_version": {"const": "0.4.0"},
+    "github_login": {"type": "string", "minLength": 1},
+    "repository": {
+      "type": "object",
+      "required": ["host", "owner", "name"],
+      "properties": {
+        "host": {"type": "string"},
+        "owner": {"type": "string"},
+        "name": {"type": "string"},
+        "target_ref": {"type": ["string", "null"]},
+        "target_commit": {"type": ["string", "null"]}
+      },
+      "additionalProperties": false
+    },
+    "updated_at": {"type": "string"},
+    "orientation": {"enum": ["not_started", "introduced", "explored"]},
+    "topics": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "object",
+        "required": ["state"],
+        "properties": {
+          "state": {"enum": ["unseen", "introduced", "explored", "assessed"]},
+          "concepts_seen": {"type": "array", "items": {"type": "string"}},
+          "code_anchors": {"type": "array", "items": {"type": "string"}},
+          "self_reported_confidence": {"type": ["number", "null"], "minimum": 0, "maximum": 5},
+          "verified_score": {"type": ["number", "null"], "minimum": 0, "maximum": 5},
+          "assessment_attempts": {"type": "array", "items": {"type": "object"}}
+        },
+        "additionalProperties": true
+      }
+    },
+    "learner_questions": {"type": "array", "items": {"type": "object"}},
+    "unresolved_questions": {"type": "array", "items": {"type": "string"}},
+    "resume": {
+      "type": "object",
+      "required": ["summary", "next_anchor"],
+      "properties": {
+        "summary": {"type": "string"},
+        "next_anchor": {"type": ["string", "null"]}
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": true
+}

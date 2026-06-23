@@ -1,0 +1,24 @@
+{
+  "tutorial_session_id": "area-id-tutorial-1",
+  "area_id": "",
+  "developer_id": "",
+  "status": "walkthrough_in_progress",
+  "selected_ref": "main",
+  "started_at": "YYYY-MM-DDTHH:MM:SSZ",
+  "completed_at": null,
+  "walkthrough_excerpts": [
+    {
+      "excerpt_id": "entry-point",
+      "path": "",
+      "line_start": null,
+      "line_end": null,
+      "purpose": "",
+      "what_to_notice": [],
+      "adjacent_files_or_tests": [],
+      "agent_guidance_risks": []
+    }
+  ],
+  "human_questions": [],
+  "quiz_ready_confirmed": false,
+  "quiz_ready_phrase": null
+}

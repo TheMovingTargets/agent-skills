@@ -1,0 +1,14 @@
+{
+  "question_id": "area-id-question-1",
+  "area_id": "",
+  "developer_id": "",
+  "asked_at": "YYYY-MM-DDTHH:MM:SSZ",
+  "question": "",
+  "related_excerpt_id": null,
+  "related_path": null,
+  "answer_summary": "",
+  "evidence_basis": [],
+  "status": "answered",
+  "follow_up_needed": false,
+  "next_action": null
+}

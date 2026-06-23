@@ -1,0 +1,12 @@
+{
+  "id": "issue-candidate-YYYY-MM-DD-001",
+  "title": "",
+  "status": "candidate",
+  "source": "cognitive-reload",
+  "related_area_ids": [],
+  "evidence": [],
+  "problem": "",
+  "suggested_acceptance_criteria": [],
+  "risk_level": "medium",
+  "requires_developer_approval": true
+}

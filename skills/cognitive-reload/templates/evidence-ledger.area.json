@@ -1,0 +1,19 @@
+{
+  "ledger_id": "area-id-YYYY-MM-DD",
+  "area_id": "",
+  "area_name": "",
+  "classification": "sampled_unverified_area",
+  "why_selected": [],
+  "git_evidence": {
+    "commits": [],
+    "changed_files": [],
+    "sampled_files": []
+  },
+  "files_inspected": [],
+  "tests_inspected": [],
+  "docs_inspected": [],
+  "observed_invariants": [],
+  "risk_drivers": [],
+  "unknowns": [],
+  "agent_confidence": "low"
+}

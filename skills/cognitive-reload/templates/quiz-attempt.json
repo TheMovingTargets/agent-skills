@@ -1,0 +1,23 @@
+{
+  "attempt_id": "area-id-attempt-1",
+  "area_id": "",
+  "developer_id": "",
+  "attempt_number": 1,
+  "questions": [],
+  "answer_summary": "",
+  "coaching_before_attempt": false,
+  "scores": {
+    "orientation": null,
+    "causal_understanding": null,
+    "change_awareness": null,
+    "risk_awareness": null,
+    "test_awareness": null,
+    "agent_guidance_readiness": null
+  },
+  "area_score": null,
+  "assessment": "ungraded",
+  "missing_concepts": [],
+  "retake_offered": false,
+  "retake_type": null,
+  "updates_verified_score": false
+}

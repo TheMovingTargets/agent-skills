@@ -1,0 +1,30 @@
+{
+  "schema_version": "0.6.0",
+  "generated_at": "1970-01-01T00:00:00+00:00",
+  "privacy": "public",
+  "repository": {
+    "host": "github.com",
+    "owner": "example",
+    "name": "repo",
+    "target_ref": "main",
+    "target_commit": null
+  },
+  "hitl_cognition": {
+    "index": 0,
+    "level": "unmapped",
+    "orientation": "not_started",
+    "topic_count": 0,
+    "introduced_topics": 0,
+    "explored_topics": 0,
+    "assessed_topics": 0,
+    "agent_ready_topics": 0,
+    "verified_average": null,
+    "freshness_days": null,
+    "last_reload_at": null
+  },
+  "topics": [],
+  "counts": {
+    "learner_questions": 0,
+    "unresolved_questions": 0
+  }
+}

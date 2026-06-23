@@ -1,0 +1,11 @@
+{
+  "name": "cognitive-reload-skill",
+  "version": "0.6.1",
+  "private": true,
+  "description": "Cross-agent Cognitive Reload skill package for Claude Code and Codex.",
+  "license": "MIT",
+  "scripts": {
+    "validate:skill": "python3 scripts/validate-skill.py",
+    "validate:exporter": "python3 skills/cognitive-reload/scripts/export_hitl_cognition.py --help >/dev/null"
+  }
+}

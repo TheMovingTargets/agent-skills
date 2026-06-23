@@ -1,0 +1,12 @@
+{
+  "id": "adr-candidate-YYYY-MM-DD-001",
+  "title": "",
+  "status": "candidate",
+  "source": "cognitive-reload",
+  "related_area_ids": [],
+  "evidence": [],
+  "decision_to_record": "",
+  "context": "",
+  "consequences": [],
+  "requires_developer_approval": true
+}

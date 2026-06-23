@@ -1,30 +1,52 @@
-# Cognitive Reload Skill
+# Agent Skills
+
+Reusable cross-agent skills maintained by TheMovingTargets. This repository packages skills in the open `SKILL.md` format and keeps them installable across agents such as Claude Code and Codex.
+
+Install from this repository:
+
+```bash
+npx skills@latest add TheMovingTargets/agent-skills
+```
+
+## Included Skills
+
+### Cognitive Reload
 
 Guided, resumable codebase tutoring for agentic development. Cognitive Reload helps an agent rebuild a developer's mental model of a repository, teach architecture diagram-first, resume per GitHub user and repository, and publish sanitized HITL cognition artifacts.
 
-## Install
+Use it for:
 
-Install interactively with the cross-agent skills installer:
+- First-time repository onboarding.
+- Returning-developer reloads.
+- Architecture walkthroughs.
+- Code teach-backs and optional assessment.
+- Public HITL cognition dashboards and badges.
+
+## Install Options
+
+Install interactively:
 
 ```bash
-npx skills@latest add your-org/agent-skills
+npx skills@latest add TheMovingTargets/agent-skills
 ```
 
-Then choose `cognitive-reload` and the agent targets you want, such as Claude Code, Codex, or both.
-
-For a non-interactive install, use:
+Install `cognitive-reload` for Claude Code and Codex:
 
 ```bash
-npx skills@latest add your-org/agent-skills \
+npx skills@latest add TheMovingTargets/agent-skills \
   --skill cognitive-reload \
   --agent claude-code \
   --agent codex \
   --global
 ```
 
-Replace `your-org/agent-skills` with the final GitHub repository once published.
+List available skills without installing:
 
-## Use
+```bash
+npx skills@latest add TheMovingTargets/agent-skills --list
+```
+
+## Usage
 
 In a repository, ask your agent:
 
@@ -44,20 +66,11 @@ To publish sanitized HITL cognition artifacts:
 Use the cognitive-reload skill. Publish the public HITL cognition dashboard and README badges from my progress.
 ```
 
-## What It Does
-
-- Starts with a broad repository map before code details.
-- Teaches diagram-first, then code and tests.
-- Pauses for human questions between layers.
-- Saves local progress keyed by authenticated GitHub user and repository.
-- Supports optional teach-back assessment.
-- Exports public HITL cognition dashboards and badges without raw learner answers or raw questions.
-
 ## Privacy
 
-The skill stores private learner progress locally by default, outside the target repository. Public HITL exports exclude GitHub login, raw learner questions, and raw assessment answers.
+Cognitive Reload stores private learner progress locally by default, outside the target repository. Public HITL exports exclude GitHub login, raw learner questions, and raw assessment answers.
 
-The skill should not write repository files unless the user approves a publish/export step.
+The skill should not write repository files unless the user approves a publish or export step.
 
 ## Repository Layout
 
@@ -78,7 +91,7 @@ skills/
   marketplace.json
 ```
 
-The canonical skill source is `skills/cognitive-reload`. The Claude and Codex plugin manifests are compatibility layers around the same skill.
+The canonical skill source is `skills/cognitive-reload`. Claude and Codex plugin manifests are compatibility layers around the same skill.
 
 ## Update
 
@@ -89,7 +102,7 @@ npx skills@latest update
 Or reinstall from the repository:
 
 ```bash
-npx skills@latest add your-org/agent-skills --skill cognitive-reload --global
+npx skills@latest add TheMovingTargets/agent-skills --skill cognitive-reload --global
 ```
 
 ## License

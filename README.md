@@ -2,7 +2,7 @@
 
 Reusable cross-agent skills maintained by TheMovingTargets. This repository packages skills in the open `SKILL.md` format and keeps them installable across agents such as Claude Code and Codex.
 
-Install from this repository:
+Install into the current project or folder:
 
 ```bash
 npx skills@latest add TheMovingTargets/agent-skills
@@ -24,13 +24,23 @@ Use it for:
 
 ## Install Options
 
-Install interactively:
+Install into the current project or folder:
 
 ```bash
 npx skills@latest add TheMovingTargets/agent-skills
 ```
 
-Install `cognitive-reload` for Claude Code and Codex:
+This creates `.agents/skills/cognitive-reload` and `skills-lock.json` in the directory where you run the command.
+
+Install `cognitive-reload` globally for the current user:
+
+```bash
+npx skills@latest add TheMovingTargets/agent-skills \
+  --skill cognitive-reload \
+  --global
+```
+
+Install globally for specific agent targets:
 
 ```bash
 npx skills@latest add TheMovingTargets/agent-skills \

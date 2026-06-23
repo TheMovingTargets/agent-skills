@@ -19,6 +19,36 @@ Or run the included installer:
 
 Use `codex` or `claude` instead of `both` to install only one copy.
 
+## Usage
+
+Ask your agent to use the skill from the repository you want to learn:
+
+```text
+Use the cognitive-reload skill. Start a first-time reload for this repository.
+```
+
+For a returning session:
+
+```text
+Use the cognitive-reload skill. Resume my cognitive-reload progress for this repository.
+```
+
+For a focused walkthrough:
+
+```text
+Use the cognitive-reload skill. Walk me through the authentication subsystem.
+```
+
+For help:
+
+```text
+Use the cognitive-reload skill. What can this skill do?
+```
+
+The skill starts with a repository overview and diagram, pauses for questions at
+each layer, and only begins assessment when you explicitly ask for a quiz or
+teach-back.
+
 To install and start a private local Kroki renderer for chat diagrams:
 
 ```bash

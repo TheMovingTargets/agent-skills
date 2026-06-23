@@ -7,7 +7,7 @@ Guided, resumable codebase tutoring for agentic development. Cognitive Reload he
 Install interactively with the cross-agent skills installer:
 
 ```bash
-npx skills@latest add your-org/cognitive-reload-skill
+npx skills@latest add your-org/agent-skills
 ```
 
 Then choose `cognitive-reload` and the agent targets you want, such as Claude Code, Codex, or both.
@@ -15,14 +15,14 @@ Then choose `cognitive-reload` and the agent targets you want, such as Claude Co
 For a non-interactive install, use:
 
 ```bash
-npx skills@latest add your-org/cognitive-reload-skill \
+npx skills@latest add your-org/agent-skills \
   --skill cognitive-reload \
   --agent claude-code \
   --agent codex \
   --global
 ```
 
-Replace `your-org/cognitive-reload-skill` with the final GitHub repository once published.
+Replace `your-org/agent-skills` with the final GitHub repository once published.
 
 ## Use
 
@@ -89,7 +89,7 @@ npx skills@latest update
 Or reinstall from the repository:
 
 ```bash
-npx skills@latest add your-org/cognitive-reload-skill --skill cognitive-reload --global
+npx skills@latest add your-org/agent-skills --skill cognitive-reload --global
 ```
 
 ## License

@@ -5,7 +5,7 @@
   "author": {
     "name": "TheMovingTargets"
   },
-  "repository": "https://github.com/TheMovingTargets/cognitive-reload-skill",
+  "repository": "https://github.com/TheMovingTargets/agent-skills",
   "license": "MIT",
   "skills": [
     "./skills/cognitive-reload"

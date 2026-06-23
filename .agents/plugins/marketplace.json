@@ -1,5 +1,5 @@
 {
-  "name": "cognitive-reload-skills",
+  "name": "agent-skills",
   "plugins": [
     {
       "name": "cognitive-reload",

@@ -1,5 +1,5 @@
 {
-  "name": "cognitive-reload-skill",
+  "name": "agent-skills",
   "version": "0.6.1",
   "private": true,
   "description": "Cross-agent Cognitive Reload skill package for Claude Code and Codex.",

@@ -15,7 +15,7 @@ printf '%s\n' 'flowchart TD' '  A["Client"] --> B["API"]' '  B --> C["Store"]' \
   | python3 scripts/kroki_url.py --alt "System flow" --check
 ```
 
-4. Place the returned Markdown image on its own line in the chat response, exactly as printed by the helper.
+4. Place the returned Markdown image on its own line in the chat response, exactly as printed by the helper. The default output is a short cached local PNG URL such as `http://127.0.0.1:8991/<hash>.png`; do not replace it with the longer Kroki URL.
 5. Follow it with a compact prose or table summary so the explanation remains usable if the client blocks images.
 
 The helper automatically applies a neutral Mermaid theme with explicit connector and
@@ -24,17 +24,20 @@ default dark links nearly disappear against dark chat backgrounds. Do not add a 
 `init` directive unless a diagram needs custom styling; a caller-supplied directive takes
 precedence and must provide contrasting `lineColor`, `.flowchart-link`, and `.marker` colors.
 
-The configured endpoint is read from `COGNITIVE_RELOAD_KROKI_URL` or `${XDG_CONFIG_HOME:-~/.config}/cognitive-reload/config.json`. The standard installer uses port `8990` and persists both `kroki_port` and `kroki_url` when invoked with `--with-kroki`. Respect that saved endpoint; never assume port `8000`.
+The configured Kroki endpoint is read from `COGNITIVE_RELOAD_KROKI_URL` or `${XDG_CONFIG_HOME:-~/.config}/cognitive-reload/config.json`. The standard installer uses port `8990` and persists both `kroki_port` and `kroki_url` when invoked with `--with-kroki`. Respect that saved endpoint; never assume port `8000`.
+
+By default, the helper renders through Kroki, stores the resulting PNG under `${XDG_CACHE_HOME:-~/.cache}/cognitive-reload/diagrams/`, starts a loopback static asset server on `127.0.0.1:8991` or the next free port, checks the cached URL, and emits that short URL. This avoids long opaque Base64 paths in assistant responses. Use `--direct-kroki-url` only for debugging.
 
 Kroki URLs must be generated only by the helper. Do not hand-build image URLs
 or paste raw Mermaid into the `/mermaid/png/...` path. The encoded path segment
 must be unpadded URL-safe Base64; it should not end with `=`. If the chat shows
 `Error 400: Unable to decode the source. The source is not in valid Base64 scheme`,
-the URL was malformed or mangled before Kroki received it. This usually means the
-image link was handwritten, copied incompletely, wrapped across lines, edited after
-generation, or generated without the bundled helper. Regenerate the image with
-`scripts/kroki_url.py --check`, paste the complete helper output unchanged, and
-do not retry the same URL.
+the browser is still requesting a direct `/mermaid/png/...` URL that was malformed
+or mangled before Kroki received it. This usually means the image link was
+handwritten, copied incompletely, wrapped across lines, edited after generation,
+or generated with `--direct-kroki-url`. Regenerate the image with
+`scripts/kroki_url.py --check`, paste the complete short cached helper output
+unchanged, and do not retry the same direct Kroki URL.
 
 If `--check` fails, do not use a broken image. Briefly say that local rendering is unavailable and use a Mermaid fence plus a concise text fallback. Do not send private repository diagrams to a public renderer.
 

@@ -57,7 +57,7 @@ If GitHub identity cannot be resolved, explain briefly that progress will be ses
 Give only:
 
 1. A 2-4 sentence plain-language repository summary.
-2. One compact rendered system-context or container diagram grounded in code/docs. Generate the Markdown image with `scripts/kroki_url.py --check`; never hand-build a `http://127.0.0.1:8990/mermaid/png/...` URL.
+2. One compact rendered system-context or container diagram grounded in code/docs. Generate the Markdown image with `scripts/kroki_url.py --check`; it should normally return a short cached local image URL such as `http://127.0.0.1:8991/<hash>.png`. Never hand-build or edit a `http://127.0.0.1:8990/mermaid/png/...` URL.
 3. A topic map of 4-7 areas, ordered as a learning path rather than by risk alone.
 4. What is known versus inferred at a high level.
 5. One open invitation: ask about the overview, or say `continue` to start the recommended first topic.
@@ -69,7 +69,7 @@ Do not show file lists, evidence ledgers, commit history, scores, code, or a ses
 Teach one topic at a time:
 
 1. State why the topic exists and how it connects to the system map.
-2. Show one compact Mermaid diagram of its flow, boundaries, or state changes. Run it through the bundled `scripts/kroki_url.py --check` helper and paste the returned Markdown image exactly. Do not paste raw Mermaid, raw diagram text, padded Base64, or a manually constructed `/mermaid/png/...` URL into an image link.
+2. Show one compact Mermaid diagram of its flow, boundaries, or state changes. Run it through the bundled `scripts/kroki_url.py --check` helper and paste the returned Markdown image exactly. Do not paste raw Mermaid, raw diagram text, padded Base64, a manually constructed `/mermaid/png/...` URL, or a shortened version of the helper output into an image link.
 3. Ask what questions the learner has about the concept. Wait.
 4. After `continue`, show one small, line-numbered code excerpt, normally 8-30 lines.
 5. Explain the excerpt with architectural context: caller, inputs, outputs, trust assumptions, invariants, and downstream effects.

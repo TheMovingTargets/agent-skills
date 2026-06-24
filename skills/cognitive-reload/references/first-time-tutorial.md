@@ -38,7 +38,7 @@ Risk may affect emphasis, but do not begin with the highest-risk subsystem if fo
 ````markdown
 This repository runs a service that collects privacy-safe LLM usage events from applications and desktop agents, stores normalized usage data, and turns it into dashboards and recommendations. Its central design problem is accepting useful telemetry without accepting raw prompts, source code, or forged tenant/device identity.
 
-![Repository system map](http://127.0.0.1:8990/mermaid/png/ENCODED_LOCAL_DIAGRAM)
+![Repository system map](http://127.0.0.1:8991/CACHED_LOCAL_DIAGRAM.png)
 
 Suggested learning path:
 1. The end-to-end event journey
@@ -51,7 +51,7 @@ What would you like clarified about this map? Say `continue` when the big pictur
 ````
 
 Do not copy this example mechanically. Derive names and relationships from the repository.
-Generate the image URL with the bundled `scripts/kroki_url.py`; never write `ENCODED_LOCAL_DIAGRAM` literally.
+Generate the image URL with the bundled `scripts/kroki_url.py --check`; never write `CACHED_LOCAL_DIAGRAM` literally and never hand-build a direct Kroki `/mermaid/png/...` URL.
 
 ## Pacing
 

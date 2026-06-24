@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.6.3 - 2026-06-24
+
+- Emit short cached local PNG URLs by default instead of long direct Kroki Base64 paths.
+- Start and verify a loopback static asset server for cached diagram images.
+- Keep `--direct-kroki-url` available only for debugging direct Kroki path issues.
+
 ## 0.6.2 - 2026-06-24
 
 - Assert that generated Kroki image path segments contain only unpadded URL-safe Base64 characters.

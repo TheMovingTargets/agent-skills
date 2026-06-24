@@ -15,7 +15,7 @@ printf '%s\n' 'flowchart TD' '  A["Client"] --> B["API"]' '  B --> C["Store"]' \
   | python3 scripts/kroki_url.py --alt "System flow" --check
 ```
 
-4. Place the returned Markdown image on its own line in the chat response.
+4. Place the returned Markdown image on its own line in the chat response, exactly as printed by the helper.
 5. Follow it with a compact prose or table summary so the explanation remains usable if the client blocks images.
 
 The helper automatically applies a neutral Mermaid theme with explicit connector and
@@ -30,8 +30,11 @@ Kroki URLs must be generated only by the helper. Do not hand-build image URLs
 or paste raw Mermaid into the `/mermaid/png/...` path. The encoded path segment
 must be unpadded URL-safe Base64; it should not end with `=`. If the chat shows
 `Error 400: Unable to decode the source. The source is not in valid Base64 scheme`,
-the URL was malformed or mangled before Kroki received it. Regenerate the image
-with `scripts/kroki_url.py --check`; do not retry the same URL.
+the URL was malformed or mangled before Kroki received it. This usually means the
+image link was handwritten, copied incompletely, wrapped across lines, edited after
+generation, or generated without the bundled helper. Regenerate the image with
+`scripts/kroki_url.py --check`, paste the complete helper output unchanged, and
+do not retry the same URL.
 
 If `--check` fails, do not use a broken image. Briefly say that local rendering is unavailable and use a Mermaid fence plus a concise text fallback. Do not send private repository diagrams to a public renderer.
 

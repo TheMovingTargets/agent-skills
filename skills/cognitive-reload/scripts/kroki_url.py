@@ -15,6 +15,8 @@ import zlib
 from pathlib import Path
 
 
+ENCODED_PATH = re.compile(r"^[A-Za-z0-9_-]+$")
+
 MERMAID_INIT = (
     '%%{init: {"theme":"base","themeVariables":{'
     '"background":"#ffffff","primaryColor":"#f8fafc",'
@@ -57,7 +59,10 @@ def encode(source: str) -> str:
     compressed = zlib.compress(source.encode("utf-8"), 9)
     # Kroki accepts URL-safe Base64 in the path segment. Padding is not needed
     # and can be mangled by chat clients, proxies, or markdown image renderers.
-    return base64.urlsafe_b64encode(compressed).decode("ascii").rstrip("=")
+    encoded = base64.urlsafe_b64encode(compressed).decode("ascii").rstrip("=")
+    if not ENCODED_PATH.fullmatch(encoded):
+        raise RuntimeError("generated Kroki path contains non URL-safe Base64 characters")
+    return encoded
 
 
 def guard_mermaid_layout(source: str) -> str:
@@ -95,11 +100,20 @@ def diagram_url(endpoint: str, diagram_type: str, output_format: str, source: st
 
 def check(url: str) -> None:
     request = urllib.request.Request(url, headers={"User-Agent": "cognitive-reload/0.5"})
-    with urllib.request.urlopen(request, timeout=15) as response:
-        content_type = response.headers.get("Content-Type", "")
-        if response.status != 200 or not content_type.startswith("image/"):
-            raise RuntimeError(f"unexpected Kroki response: {response.status} {content_type}")
-        response.read(32)
+    try:
+        with urllib.request.urlopen(request, timeout=15) as response:
+            content_type = response.headers.get("Content-Type", "")
+            if response.status != 200 or not content_type.startswith("image/"):
+                raise RuntimeError(f"unexpected Kroki response: {response.status} {content_type}")
+            response.read(32)
+    except urllib.error.HTTPError as exc:
+        body = exc.read().decode("utf-8", errors="replace").strip()
+        if "Unable to decode the source" in body:
+            raise RuntimeError(
+                "Kroki rejected the encoded source. Regenerate with this helper and do not hand-build "
+                "or edit the /mermaid/png/... URL."
+            ) from exc
+        raise RuntimeError(f"unexpected Kroki response: {exc.code} {body}") from exc
 
 
 def main() -> int:

@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.6.2 - 2026-06-24
+
+- Assert that generated Kroki image path segments contain only unpadded URL-safe Base64 characters.
+- Report Kroki decode failures as malformed or manually edited image URLs.
+- Promote the `scripts/kroki_url.py --check` requirement into the main tutoring flow to prevent handwritten local Kroki URLs.
+
 ## 0.6.1 - 2026-06-23
 
 - Make HITL cognition publishing the default closing offer after reload sessions.

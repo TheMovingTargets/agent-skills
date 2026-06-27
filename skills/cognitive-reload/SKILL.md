@@ -18,7 +18,7 @@ Act as a patient codebase tutor. Optimize for the human's understanding, not for
 7. Never expose internal tool activity, changed-file summaries, or skill implementation diffs as tutorial content.
 8. Keep each turn visually readable at chat width: one diagram maximum, 4-6 nodes normally, and no horizontal chain longer than four nodes.
 
-Read [references/first-time-tutorial.md](references/first-time-tutorial.md) for first-time sessions. Read [references/progress-memory.md](references/progress-memory.md) whenever loading or saving learner progress. Read [references/diagram-first-teaching.md](references/diagram-first-teaching.md) before teaching architecture or a topic, including the local Kroki rendering protocol. Read [references/tutor-dialogue.md](references/tutor-dialogue.md) before answering learner clarification questions. Read [references/hitl-cognition-publishing.md](references/hitl-cognition-publishing.md) and [references/cognition-index.md](references/cognition-index.md) when the learner asks to export, publish, display, badge, or summarize HITL cognition. Read [references/assessment.md](references/assessment.md) only after the learner explicitly opts into assessment.
+Read [references/first-time-tutorial.md](references/first-time-tutorial.md) for first-time sessions. Read [references/progress-memory.md](references/progress-memory.md) whenever loading or saving learner progress. Read [references/diagram-first-teaching.md](references/diagram-first-teaching.md) before teaching architecture or a topic, including the diagram rendering protocol and its render modes. Read [references/tutor-dialogue.md](references/tutor-dialogue.md) before answering learner clarification questions. Read [references/hitl-cognition-publishing.md](references/hitl-cognition-publishing.md) and [references/cognition-index.md](references/cognition-index.md) when the learner asks to export, publish, display, badge, or summarize HITL cognition. Read [references/assessment.md](references/assessment.md) only after the learner explicitly opts into assessment.
 
 ## Help
 
@@ -57,7 +57,7 @@ If GitHub identity cannot be resolved, explain briefly that progress will be ses
 Give only:
 
 1. A 2-4 sentence plain-language repository summary.
-2. One compact rendered system-context or container diagram grounded in code/docs. Generate the Markdown image with `scripts/kroki_url.py --check`; it should normally return a short cached local image URL such as `http://127.0.0.1:8991/<hash>.png`. Never hand-build or edit a `http://127.0.0.1:8990/mermaid/png/...` URL.
+2. One compact system-context or container diagram grounded in code/docs. Generate it with `scripts/kroki_url.py` (default render mode `auto`): it emits a native ```mermaid fence by default, or a cached image URL when a local renderer is configured. Paste the helper output exactly; never hand-build or edit a `/mermaid/png/...` URL.
 3. A topic map of 4-7 areas, ordered as a learning path rather than by risk alone.
 4. What is known versus inferred at a high level.
 5. One open invitation: ask about the overview, or say `continue` to start the recommended first topic.
@@ -69,7 +69,7 @@ Do not show file lists, evidence ledgers, commit history, scores, code, or a ses
 Teach one topic at a time:
 
 1. State why the topic exists and how it connects to the system map.
-2. Show one compact Mermaid diagram of its flow, boundaries, or state changes. Run it through the bundled `scripts/kroki_url.py --check` helper and paste the returned Markdown image exactly. Do not paste raw Mermaid, raw diagram text, padded Base64, a manually constructed `/mermaid/png/...` URL, or a shortened version of the helper output into an image link.
+2. Show one compact Mermaid diagram of its flow, boundaries, or state changes. Generate it with the bundled `scripts/kroki_url.py` helper and paste its output exactly. By default the helper emits a native ```mermaid fence; when it produces an image (a configured local renderer, or an opt-in public one) do not edit it, hand-build a `/mermaid/png/...` URL, paste padded Base64, or shorten the helper output.
 3. Ask what questions the learner has about the concept. Wait.
 4. After `continue`, show one small, line-numbered code excerpt, normally 8-30 lines.
 5. Explain the excerpt with architectural context: caller, inputs, outputs, trust assumptions, invariants, and downstream effects.
@@ -119,22 +119,21 @@ or summarize repository HITL cognition:
 
 1. Read [references/hitl-cognition-publishing.md](references/hitl-cognition-publishing.md) and [references/cognition-index.md](references/cognition-index.md).
 2. Load the local progress record for the authenticated GitHub user.
-3. Run a public dry run first and summarize the proposed index, level, topic counts, and files that would be written:
+3. Run a public dry run first and summarize the proposed index, level, topic counts, and files that would be written. Invoke the exporter from this skill's own directory (resolve `scripts/export_hitl_cognition.py` relative to where this `SKILL.md` is installed, e.g. `.agents/skills/cognitive-reload/` or `.claude/skills/cognitive-reload/`):
 
 ```bash
-python3 .agents/skills/cognitive-reload/scripts/export_hitl_cognition.py --repo . --dry-run
+python3 scripts/export_hitl_cognition.py --repo . --dry-run
 ```
 
 4. Explain that public mode excludes GitHub login, raw learner questions, and raw assessment answers.
 5. Ask for approval with the default action: create/update `hitl-cognition/` and update the root README badge block.
-6. After approval, run the exporter directly:
+6. After approval, run the exporter directly from the active skill directory:
 
 ```bash
-python3 .agents/skills/cognitive-reload/scripts/export_hitl_cognition.py --repo . --readme README.md
+python3 scripts/export_hitl_cognition.py --repo . --readme README.md
 ```
 
-7. If only the Claude-installed skill exists, use the `.claude/skills/...` path instead. If both exist, prefer the active skill path.
-8. Report the written files and the resulting HITL cognition level.
+7. Report the written files and the resulting HITL cognition level.
 
 Do not convert local progress into repository files during ordinary report-only tutoring.
 Published HITL cognition is not a substitute for assessment evidence; only assessed

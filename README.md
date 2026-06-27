@@ -1,6 +1,6 @@
 # Agent Skills
 
-Reusable cross-agent skills maintained by TheMovingTargets. This repository packages skills in the open `SKILL.md` format and keeps them installable across agents such as Claude Code and Codex.
+Reusable cross-agent skills maintained by TheMovingTargets. This repository packages skills in the open `SKILL.md` format and keeps them installable across agent harnesses such as Claude Code, Codex, opencode, and Pi.
 
 Install into the current project or folder:
 

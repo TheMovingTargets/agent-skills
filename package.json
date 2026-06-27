@@ -1,8 +1,8 @@
 {
   "name": "agent-skills",
-  "version": "0.6.1",
+  "version": "0.7.0",
   "private": true,
-  "description": "Cross-agent Cognitive Reload skill package for Claude Code and Codex.",
+  "description": "Cross-agent Cognitive Reload skill package in the open SKILL.md format (Claude Code, Codex, opencode, Pi).",
   "license": "MIT",
   "scripts": {
     "validate:skill": "python3 scripts/validate-skill.py",

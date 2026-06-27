@@ -43,16 +43,13 @@ the root README after explicit approval.
 
 ## Export Command
 
-Use the bundled exporter:
+Use the bundled exporter, invoked from this skill's own directory. Resolve
+`scripts/export_hitl_cognition.py` relative to where this skill is installed — for example
+`.agents/skills/cognitive-reload/` (Codex, opencode, Pi) or `.claude/skills/cognitive-reload/`
+(Claude Code):
 
 ```bash
-python3 .agents/skills/cognitive-reload/scripts/export_hitl_cognition.py --repo .
-```
-
-or the Claude-installed copy:
-
-```bash
-python3 .claude/skills/cognitive-reload/scripts/export_hitl_cognition.py --repo .
+python3 scripts/export_hitl_cognition.py --repo .
 ```
 
 Useful options:
@@ -64,16 +61,10 @@ Useful options:
 - `--readme README.md`: insert/update the root README badge block.
 - `--progress PATH`: export from a specific local progress file.
 
-After approval, the default command is:
+After approval, the default command (run from the active skill directory) is:
 
 ```bash
-python3 .agents/skills/cognitive-reload/scripts/export_hitl_cognition.py --repo . --readme README.md
-```
-
-If the active session is using the Claude-installed copy, use:
-
-```bash
-python3 .claude/skills/cognitive-reload/scripts/export_hitl_cognition.py --repo . --readme README.md
+python3 scripts/export_hitl_cognition.py --repo . --readme README.md
 ```
 
 Run the command yourself. Do not respond with only instructions unless file

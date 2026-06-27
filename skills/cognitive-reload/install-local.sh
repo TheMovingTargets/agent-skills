@@ -2,7 +2,17 @@
 set -eu
 
 usage() {
-  printf '%s\n' "Usage: $0 <repository-path> [codex|claude|both] [--with-kroki] [--kroki-port PORT]"
+  printf '%s\n' "Usage: $0 <repository-path> [claude|codex|opencode|pi|all] [--native] [--with-kroki] [--kroki-port PORT]"
+  printf '%s\n' ""
+  printf '%s\n' "Harnesses map onto two install paths:"
+  printf '%s\n' "  claude                    -> .claude/skills/cognitive-reload"
+  printf '%s\n' "  codex | opencode | pi     -> .agents/skills/cognitive-reload (the shared, agent-agnostic path all three scan)"
+  printf '%s\n' "  all (default)             -> both of the above"
+  printf '%s\n' ""
+  printf '%s\n' "  --native      also write the harness-specific dirs (.codex/skills, .opencode/skills, .pi/skills)"
+  printf '%s\n' "                for users who disabled the shared .agents path"
+  printf '%s\n' "  --with-kroki  start the optional local (private) PNG renderer; NOT required for diagrams,"
+  printf '%s\n' "                which default to a native Mermaid fence"
 }
 
 if [ "$#" -lt 1 ]; then
@@ -12,14 +22,15 @@ fi
 
 repo=$1
 shift
-target=both
+target=all
+native=false
 kroki=false
 kroki_port=${COGNITIVE_RELOAD_KROKI_PORT:-8990}
 source_dir=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
 
 if [ "$#" -gt 0 ]; then
   case "$1" in
-    codex|claude|both)
+    claude|codex|opencode|pi|all)
       target=$1
       shift
       ;;
@@ -28,6 +39,10 @@ fi
 
 while [ "$#" -gt 0 ]; do
   case "$1" in
+    --native)
+      native=true
+      shift
+      ;;
     --with-kroki)
       kroki=true
       shift
@@ -76,22 +91,43 @@ install_to() {
   printf 'Installed cognitive-reload in %s\n' "$destination"
 }
 
+# .claude/skills      -> Claude Code
+# .agents/skills       -> shared path scanned by Codex, opencode, and Pi
 case "$target" in
-  codex)
-    install_to ".agents/skills"
-    ;;
   claude)
     install_to ".claude/skills"
     ;;
-  both)
+  codex|opencode|pi)
     install_to ".agents/skills"
+    ;;
+  all)
     install_to ".claude/skills"
+    install_to ".agents/skills"
     ;;
   *)
     usage >&2
     exit 2
     ;;
 esac
+
+if [ "$native" = true ]; then
+  # Harness-specific locations for users who disabled the shared .agents path.
+  case "$target" in
+    codex|all)
+      install_to ".codex/skills"
+      ;;
+  esac
+  case "$target" in
+    opencode|all)
+      install_to ".opencode/skills"
+      ;;
+  esac
+  case "$target" in
+    pi|all)
+      install_to ".pi/skills"
+      ;;
+  esac
+fi
 
 if [ "$kroki" = true ]; then
   "$source_dir/scripts/kroki-local.sh" start "$kroki_port"

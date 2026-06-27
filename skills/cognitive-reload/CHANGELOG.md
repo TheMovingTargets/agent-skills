@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.7.0 - 2026-06-27
+
+- Make the skill harness-agnostic: support Claude Code, Codex, opencode, and Pi via the open `SKILL.md` format, installed into two shared paths (`.claude/skills` and `.agents/skills`).
+- Rework the installer with named targets (`claude|codex|opencode|pi|all`) and an optional `--native` flag for harness-specific dirs; drop the `codex|claude|both`-only options.
+- Default diagram rendering to a native ```mermaid fence (zero setup, no Docker, no network) via a new `--render-mode {fence|public|local|auto}`.
+- Add an opt-in `public` render tier (`kroki.io`) decoupled from `--endpoint`, so diagram source is never sent to a third party without explicit consent.
+- Keep the self-hosted Docker `local` tier for private repos; record `render_mode: local` and migrate legacy `diagram_mode` configs.
+- In `auto`, degrade to a fence when a configured local renderer is unreachable, while still failing hard on layout-policy violations.
+- Remove single-client wording and hard-coded `.agents/`/`.claude/` script paths in favor of skill-relative invocation.
+
 ## 0.6.3 - 2026-06-24
 
 - Emit short cached local PNG URLs by default instead of long direct Kroki Base64 paths.
@@ -66,7 +76,7 @@
 - Add an optional self-hosted Kroki gateway and Mermaid companion to the installer.
 - Bind Kroki to loopback and store its endpoint outside the production repository.
 - Render Mermaid as ordinary Markdown PNG images for clients without native Mermaid support.
-- Add deterministic URL generation, server checks, service management, and a T3 smoke test.
+- Add deterministic URL generation, server checks, service management, and an inline-image smoke test.
 - Retain a concise text fallback and prohibit public rendering of private architecture.
 
 ## 0.4.1 - 2026-06-22

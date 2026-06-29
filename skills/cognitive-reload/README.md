@@ -1,23 +1,26 @@
 # Cognitive Reload
 
-An interactive, diagram-first codebase tutor with optional teach-back assessment and local progress memory keyed to the authenticated GitHub user.
+An interactive, diagram-first codebase tutor with optional teach-back assessment and local progress memory. Runs across agent harnesses (Claude Code, Codex, opencode, Pi) and renders diagrams with no setup by default. Progress optionally persists per GitHub user when `gh` is available.
 
 ## Install
 
-Copy this directory into either repository-scoped skill location:
+Cognitive Reload uses the open `SKILL.md` format, so it runs across agent harnesses. It installs
+into just two repository-scoped paths that together cover all supported harnesses:
 
 ```text
-.agents/skills/cognitive-reload   # Codex
-.claude/skills/cognitive-reload   # Claude Code
+.claude/skills/cognitive-reload    # Claude Code
+.agents/skills/cognitive-reload    # Codex, opencode, and Pi (all natively scan .agents/skills)
 ```
 
-Or run the included installer:
+Run the included installer (defaults to `all`, writing both paths):
 
 ```bash
-./install-local.sh /path/to/repository both
+./install-local.sh /path/to/repository
 ```
 
-Use `codex` or `claude` instead of `both` to install only one copy.
+Pass a harness name to install a single target: `claude`, `codex`, `opencode`, `pi`, or `all`. Add
+`--native` to additionally write the harness-specific dirs (`.codex/skills`, `.opencode/skills`,
+`.pi/skills`) if you have disabled the shared `.agents` path in your harness.
 
 ## Usage
 
@@ -49,27 +52,43 @@ The skill starts with a repository overview and diagram, pauses for questions at
 each layer, and only begins assessment when you explicitly ask for a quiz or
 teach-back.
 
-To install and start a private local Kroki renderer for chat diagrams:
+## Diagrams
+
+Diagrams render with **no setup** by default. The bundled `scripts/kroki_url.py` helper emits a
+native ```mermaid fence, which renders in GitHub, IDEs, and most agent UIs. Two optional image tiers
+exist for clients that cannot render Mermaid:
+
+- **Local (private):** a self-hosted Kroki renders PNGs served from a loopback cache. Best for
+  private repositories. See below.
+- **Public (opt-in):** render through `https://kroki.io` with `--render-mode public`. This sends the
+  diagram source to a third party, so it is **never** used automatically — enable it only for
+  non-sensitive repositories.
+
+`auto` (the default) stays network-free: it uses a fence unless a local renderer is configured.
+
+### Optional local renderer (private)
+
+To install and start a private local Kroki renderer:
 
 ```bash
-./install-local.sh /path/to/repository both --with-kroki
+./install-local.sh /path/to/repository --with-kroki
 ```
 
-This requires Docker Desktop with Docker Compose. It starts pinned Kroki `0.30.1` gateway and Mermaid companion images on `127.0.0.1:8990`, then records both the port and endpoint in `${XDG_CONFIG_HOME:-~/.config}/cognitive-reload/config.json`. Expect roughly 1.5 GB of compressed image downloads on the first installation. To use another port:
+This requires Docker Desktop with Docker Compose. It starts pinned Kroki `0.30.1` gateway and Mermaid companion images on `127.0.0.1:8990`, then records the port, endpoint, and `render_mode: local` in `${XDG_CONFIG_HOME:-~/.config}/cognitive-reload/config.json`. Expect roughly 1.5 GB of compressed image downloads on the first installation. To use another port:
 
 ```bash
-./install-local.sh /path/to/repository both --with-kroki --kroki-port 8123
+./install-local.sh /path/to/repository --with-kroki --kroki-port 8123
 ```
 
 The selected port may also be supplied through `COGNITIVE_RELOAD_KROKI_PORT`. A command-line `--kroki-port` value takes precedence. The installer checks for port conflicts before starting Docker.
 
-Verify both rendering and T3 image display:
+Verify rendering and inline image display in your agent UI:
 
 ```bash
-.agents/skills/cognitive-reload/scripts/kroki-local.sh smoke
+<skill-dir>/scripts/kroki-local.sh smoke
 ```
 
-Paste the emitted Markdown image into T3. If the image appears, Cognitive Reload can render diagrams inline without native Mermaid support.
+where `<skill-dir>` is the installed skill directory (e.g. `.agents/skills/cognitive-reload`). Paste the emitted Markdown image into your agent UI; if it appears, Cognitive Reload can render diagrams inline for clients without native Mermaid support. The loopback image URL only works when the renderer and the display UI share a host — remote or cloud harnesses cannot reach it and should use the fence (or public) tier.
 
 The image helper applies chat-safe connector and arrowhead colors automatically so that
 transparent PNGs remain readable in both dark and light themes.
@@ -79,14 +98,13 @@ Manage the service with `kroki-local.sh status` or `kroki-local.sh stop`.
 ## Publish HITL Cognition
 
 After a reload and optional teach-back, export local progress into repository-visible
-artifacts:
+artifacts. Run the exporter from the installed skill directory (`<skill-dir>` is e.g.
+`.agents/skills/cognitive-reload` or `.claude/skills/cognitive-reload`):
 
 ```bash
-python3 .agents/skills/cognitive-reload/scripts/export_hitl_cognition.py --repo . --dry-run
-python3 .agents/skills/cognitive-reload/scripts/export_hitl_cognition.py --repo .
+python3 <skill-dir>/scripts/export_hitl_cognition.py --repo . --dry-run
+python3 <skill-dir>/scripts/export_hitl_cognition.py --repo .
 ```
-
-Claude installations can use the `.claude/skills/...` path instead.
 
 The default export writes:
 
@@ -112,7 +130,7 @@ hitl-cognition/
 To add or update a root README badge block:
 
 ```bash
-python3 .agents/skills/cognitive-reload/scripts/export_hitl_cognition.py --repo . --readme README.md
+python3 <skill-dir>/scripts/export_hitl_cognition.py --repo . --readme README.md
 ```
 
 During normal skill use, Cognitive Reload offers this export at the end of a
@@ -122,7 +140,7 @@ rather than asking you to run the command manually.
 Public exports omit GitHub login, raw learner questions, and raw assessment answers.
 Use `--privacy private` only for intended private/team artifacts.
 
-The progress helper requires Python 3, Git, and an authenticated GitHub CLI (`gh`) for persistent learner identity. Without `gh`, tutoring still works with session-only progress. Local diagram rendering additionally requires Docker Desktop and Docker Compose.
+The progress helper requires Python 3 and Git. An authenticated GitHub CLI (`gh`) is optional and only enables persistent learner identity across sessions; without it, tutoring still works with session-only progress. Diagrams need nothing extra (native Mermaid fence); the optional **local** image tier additionally requires Docker Desktop and Docker Compose.
 
 ## Version
 

@@ -33,4 +33,4 @@ Before handoff, cognitive reload should produce:
 
 ## Agent switching
 
-If the developer is switching from Claude to Codex, Cursor, or another agent, prioritize `agent_guidance_readiness` and produce handoff notes that are independent of a specific agent harness.
+If the developer is switching between agent harnesses (for example Claude Code, Codex, opencode, Pi, or Cursor), prioritize `agent_guidance_readiness` and produce handoff notes that are independent of any specific agent harness.

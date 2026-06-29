@@ -43,7 +43,7 @@ Use language-specific clues only as evidence, not certainty:
 ## Prior artifact search
 
 ```bash
-find docs .agents .claude -path '*cognitive-reload*' -type f 2>/dev/null
+find docs .agents .claude .codex .opencode .pi -path '*cognitive-reload*' -type f 2>/dev/null
 find . -path '*/cognitive-reload/*' -type f 2>/dev/null
 ```
 

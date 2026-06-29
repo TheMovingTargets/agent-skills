@@ -36,7 +36,10 @@ from pathlib import Path
 path = Path(sys.argv[1])
 port = int(sys.argv[2])
 data = json.loads(path.read_text()) if path.exists() else {}
-data["diagram_mode"] = "kroki_image"
+# Signal that a local renderer is explicitly configured so `auto` render mode can select it.
+data["render_mode"] = "local"
+data["local_render"] = True
+data.pop("diagram_mode", None)  # superseded by render_mode/local_render
 data["kroki_port"] = port
 data["kroki_url"] = f"http://127.0.0.1:{port}"
 temporary = path.with_suffix(".tmp")
@@ -47,13 +50,13 @@ PY
 
 smoke_endpoint() {
   port=$1
-  printf '%s\n' 'flowchart LR' '  A["Cognitive Reload"] --> B["Local Kroki"]' '  B --> C["T3 chat image"]' |
-    python3 "$script_dir/kroki_url.py" --endpoint "http://127.0.0.1:$port" --alt "Kroki rendering test" --check
+  printf '%s\n' 'flowchart LR' '  A["Cognitive Reload"] --> B["Local Kroki"]' '  B --> C["Inline chat image"]' |
+    python3 "$script_dir/kroki_url.py" --render-mode local --endpoint "http://127.0.0.1:$port" --alt "Kroki rendering test" --check
 }
 
 smoke() {
-  printf '%s\n' 'flowchart LR' '  A["Cognitive Reload"] --> B["Local Kroki"]' '  B --> C["T3 chat image"]' |
-    python3 "$script_dir/kroki_url.py" --alt "Kroki rendering test" --check
+  printf '%s\n' 'flowchart LR' '  A["Cognitive Reload"] --> B["Local Kroki"]' '  B --> C["Inline chat image"]' |
+    python3 "$script_dir/kroki_url.py" --render-mode local --alt "Kroki rendering test" --check
 }
 
 port_in_use() {
@@ -102,7 +105,7 @@ case "$command" in
     done
     write_config "$port"
     printf 'Local Kroki is ready at http://127.0.0.1:%s\n' "$port"
-    printf '%s\n' "Run '$0 smoke' and paste its Markdown into T3 to verify inline images."
+    printf '%s\n' "Run '$0 smoke' and paste its Markdown into your agent UI to verify inline images."
     ;;
   stop)
     compose down

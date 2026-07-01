@@ -22,6 +22,26 @@ Pass a harness name to install a single target: `claude`, `codex`, `opencode`, `
 `--native` to additionally write the harness-specific dirs (`.codex/skills`, `.opencode/skills`,
 `.pi/skills`) if you have disabled the shared `.agents` path in your harness.
 
+To share one version across every repository for your user, install once at the user level and skip
+per-repo installs (a repo-scoped copy shadows the user-level one):
+
+```bash
+./install-local.sh ~ all   # writes ~/.claude/skills and ~/.agents/skills
+```
+
+### Uninstall
+
+Remove a repository-scoped install with `--uninstall`; it deletes the same target (and `--native`)
+paths it would have created, then tidies the now-empty `skills` dirs. Repos fall back to any
+user-level install afterward.
+
+```bash
+./install-local.sh /path/to/repository all --uninstall
+```
+
+`--uninstall` leaves `~/.config/cognitive-reload` and any running local renderer untouched; stop the
+renderer separately with `scripts/kroki-local.sh stop`. It cannot be combined with `--with-kroki`.
+
 ## Usage
 
 Ask your agent to use the skill from the repository you want to learn:

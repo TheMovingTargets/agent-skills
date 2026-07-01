@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.7.1 - 2026-07-01
+
+- Add an `--uninstall` flag to the installer that removes the skill from the same target/`--native` paths it installs to, so a repo falls back to any user-level install; it tidies now-empty `skills` dirs and refuses to delete the running source checkout.
+- Leave `~/.config/cognitive-reload` and any running local renderer untouched on uninstall; reject `--uninstall --with-kroki` together.
+- Document installing once at the user level (`install-local.sh ~ all`) so every repository shares one version.
+
 ## 0.7.0 - 2026-06-27
 
 - Make the skill harness-agnostic: support Claude Code, Codex, opencode, and Pi via the open `SKILL.md` format, installed into two shared paths (`.claude/skills` and `.agents/skills`).

@@ -1,11 +1,12 @@
 {
-  "name": "agent-skills",
-  "version": "0.7.0",
+  "name": "tmt-agent-skills",
+  "version": "0.8.0",
   "private": true,
-  "description": "Cross-agent Cognitive Reload skill package in the open SKILL.md format (Claude Code, Codex, opencode, Pi).",
+  "description": "Cross-agent skills from TheMovingTargets in the open SKILL.md format.",
   "license": "MIT",
   "scripts": {
     "validate:skill": "python3 scripts/validate-skill.py",
-    "validate:exporter": "python3 skills/cognitive-reload/scripts/export_hitl_cognition.py --help >/dev/null"
+    "validate:exporter": "python3 skills/cognitive-reload/scripts/export_hitl_cognition.py --help >/dev/null",
+    "test:deploy": "python3 scripts/test-tmt-agent-deploy.py"
   }
 }

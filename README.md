@@ -1,4 +1,4 @@
-# Agent Skills
+# TMT Agent Skills
 
 Reusable cross-agent skills maintained by TheMovingTargets. This repository packages skills in the open `SKILL.md` format and keeps them installable across agent harnesses such as Claude Code, Codex, opencode, and Pi.
 
@@ -21,6 +21,31 @@ Use it for:
 - Architecture walkthroughs.
 - Code teach-backs and optional assessment.
 - Public HITL cognition dashboards and badges.
+
+### TMT Agent Deploy
+
+Provider- and harness-neutral deployment setup and execution. TMT Agent Deploy:
+
+- Discovers existing deployment scripts, runbooks, infrastructure, and CI/CD.
+- Creates a private, gitignored `.tmt-agent-deploy/` configuration and state area.
+- Reuses reviewed repository automation and prefers established CI/CD workflows.
+- Requires deployment preflight approval and configurable per-step confirmation.
+- Runs smoke tests, diagnoses failures, and automatically invokes reviewed rollback.
+- Produces sanitized local run summaries with external log references.
+
+Install only TMT Agent Deploy:
+
+```bash
+npx skills@latest add TheMovingTargets/agent-skills \
+  --skill tmt-agent-deploy
+```
+
+Install only Cognitive Reload:
+
+```bash
+npx skills@latest add TheMovingTargets/agent-skills \
+  --skill cognitive-reload
+```
 
 ## Install Options
 
@@ -76,11 +101,33 @@ To publish sanitized HITL cognition artifacts:
 Use the cognitive-reload skill. Publish the public HITL cognition dashboard and README badges from my progress.
 ```
 
+To configure and deploy a repository:
+
+```text
+Build and deploy the full stack to the Production EC2 instance. Complete smoke tests and report back the results.
+```
+
+To deploy one scoped service:
+
+```text
+Build a new instance of the client service, redeploy for this user, and report back after confirming that the service came back up.
+```
+
+If required scope is ambiguous, TMT Agent Deploy stops and asks for the exact target parameters.
+
+To change confirmation policy or another persisted setting:
+
+```text
+Use tmt-agent-deploy in reconfiguration mode and change the confirmation policy.
+```
+
 ## Privacy
 
 Cognitive Reload stores private learner progress locally by default, outside the target repository. Public HITL exports exclude GitHub login, raw learner questions, and raw assessment answers.
 
 The skill should not write repository files unless the user approves a publish or export step.
+
+TMT Agent Deploy stores repository-specific configuration, state, and sanitized run summaries under the gitignored `.tmt-agent-deploy/` directory. It prohibits secrets in that directory and stores only credential paths or references.
 
 ## Repository Layout
 
@@ -93,6 +140,12 @@ skills/
     assets/
     schemas/
     templates/
+  tmt-agent-deploy/
+    SKILL.md
+    references/
+    schemas/
+    scripts/
+    tests/
 .claude-plugin/
   plugin.json
 .codex-plugin/
@@ -101,7 +154,7 @@ skills/
   marketplace.json
 ```
 
-The canonical skill source is `skills/cognitive-reload`. Claude and Codex plugin manifests are compatibility layers around the same skill.
+Canonical skill sources live under `skills/<skill-name>`. The existing Claude and Codex plugin manifests remain compatibility layers for Cognitive Reload; use the open Skills CLI to install `tmt-agent-deploy`.
 
 ## Update
 

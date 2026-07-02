@@ -1,0 +1,401 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://themovingtargets.com/schemas/tmt-agent-deploy/config.schema.json",
+  "title": "TMT Agent Deploy configuration",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "validated_by",
+    "confirmation_policy",
+    "defaults",
+    "artifacts",
+    "environments"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "1"
+    },
+    "validated_by": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["skill", "version"],
+      "properties": {
+        "skill": {"const": "tmt-agent-deploy"},
+        "version": {"type": "string", "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$"}
+      }
+    },
+    "confirmation_policy": {
+      "enum": ["each-step", "preflight-only"]
+    },
+    "defaults": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "step_timeout_seconds",
+        "diagnostic_retry_count",
+        "diagnostic_retry_delay_seconds",
+        "max_diagnostic_seconds",
+        "run_summary_retention"
+      ],
+      "properties": {
+        "step_timeout_seconds": {"type": "integer", "minimum": 1},
+        "diagnostic_retry_count": {"type": "integer", "minimum": 0},
+        "diagnostic_retry_delay_seconds": {"type": "integer", "minimum": 0},
+        "max_diagnostic_seconds": {"type": "integer", "minimum": 1},
+        "run_summary_retention": {"const": 50}
+      }
+    },
+    "credential_refs": {
+      "type": "array",
+      "items": {"$ref": "#/$defs/credentialRef"},
+      "default": []
+    },
+    "artifacts": {
+      "type": "array",
+      "minItems": 1,
+      "items": {"$ref": "#/$defs/artifact"}
+    },
+    "environments": {
+      "type": "object",
+      "minProperties": 1,
+      "additionalProperties": {"$ref": "#/$defs/environment"}
+    }
+  },
+  "$defs": {
+    "credentialRef": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "kind", "reference"],
+      "properties": {
+        "name": {"type": "string", "minLength": 1},
+        "kind": {
+          "enum": [
+            "environment-variable",
+            "file-path",
+            "secret-manager",
+            "identity-provider",
+            "authentication-command",
+            "external"
+          ]
+        },
+        "reference": {"type": "string", "minLength": 1}
+      }
+    },
+    "artifact": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["path", "role", "behavioral"],
+      "properties": {
+        "path": {"type": "string", "minLength": 1},
+        "role": {"type": "string", "minLength": 1},
+        "behavioral": {"type": "boolean"}
+      }
+    },
+    "environment": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["description", "criticality", "targets"],
+      "properties": {
+        "description": {"type": "string", "minLength": 1},
+        "criticality": {"enum": ["development", "test", "staging", "production"]},
+        "targets": {
+          "type": "object",
+          "minProperties": 1,
+          "additionalProperties": {"$ref": "#/$defs/target"}
+        }
+      }
+    },
+    "target": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "description",
+        "parameters",
+        "source",
+        "concurrency",
+        "baseline_health",
+        "persistent_data",
+        "components"
+      ],
+      "properties": {
+        "description": {"type": "string", "minLength": 1},
+        "parameters": {
+          "type": "object",
+          "additionalProperties": {"$ref": "#/$defs/parameter"}
+        },
+        "source": {"$ref": "#/$defs/source"},
+        "concurrency": {"$ref": "#/$defs/concurrency"},
+        "baseline_health": {"$ref": "#/$defs/entrypoint"},
+        "persistent_data": {"type": "boolean"},
+        "backup": {"$ref": "#/$defs/backup"},
+        "migration": {"$ref": "#/$defs/migration"},
+        "preflight": {
+          "type": "array",
+          "items": {"$ref": "#/$defs/entrypoint"},
+          "default": []
+        },
+        "build": {
+          "type": "array",
+          "items": {"$ref": "#/$defs/entrypoint"},
+          "default": []
+        },
+        "components": {
+          "type": "array",
+          "minItems": 1,
+          "items": {"$ref": "#/$defs/component"}
+        },
+        "dry_run": {
+          "type": "array",
+          "items": {"$ref": "#/$defs/entrypoint"},
+          "default": []
+        },
+        "recovery_references": {
+          "type": "array",
+          "items": {"type": "string", "minLength": 1},
+          "default": []
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {"persistent_data": {"const": true}},
+            "required": ["persistent_data"]
+          },
+          "then": {"required": ["backup"]}
+        }
+      ]
+    },
+    "parameter": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "required"],
+      "properties": {
+        "type": {"enum": ["string", "integer", "boolean"]},
+        "required": {"type": "boolean"},
+        "pattern": {"type": "string"},
+        "enum": {
+          "type": "array",
+          "minItems": 1,
+          "items": {"type": ["string", "integer", "boolean"]}
+        },
+        "minimum": {"type": "integer"},
+        "maximum": {"type": "integer"},
+        "description": {"type": "string"}
+      }
+    },
+    "source": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind", "identity_template", "immutable", "preconditions"],
+      "properties": {
+        "kind": {"enum": ["git", "artifact", "container", "package", "custom"]},
+        "identity_template": {"type": "string", "minLength": 1},
+        "immutable": {"type": "boolean"},
+        "preconditions": {
+          "type": "array",
+          "minItems": 1,
+          "items": {"$ref": "#/$defs/entrypoint"}
+        }
+      }
+    },
+    "concurrency": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind", "check", "override_requires_explicit_approval"],
+      "properties": {
+        "kind": {"enum": ["ci-group", "provider-lease", "repository-lock", "external"]},
+        "check": {"$ref": "#/$defs/entrypoint"},
+        "override_requires_explicit_approval": {"const": true}
+      }
+    },
+    "backup": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["create", "verify", "restore"],
+      "properties": {
+        "create": {"$ref": "#/$defs/entrypoint"},
+        "verify": {"$ref": "#/$defs/entrypoint"},
+        "restore": {"$ref": "#/$defs/entrypoint"}
+      }
+    },
+    "migration": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["backward_compatible", "entrypoints", "recovery_plan"],
+      "properties": {
+        "backward_compatible": {"type": "boolean"},
+        "entrypoints": {
+          "type": "array",
+          "items": {"$ref": "#/$defs/entrypoint"}
+        },
+        "recovery_plan": {"type": "string", "minLength": 1}
+      }
+    },
+    "component": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "name",
+        "deploy",
+        "rollback",
+        "rollback_verify",
+        "smoke_tests",
+        "diagnostics"
+      ],
+      "properties": {
+        "name": {"type": "string", "minLength": 1},
+        "depends_on": {
+          "type": "array",
+          "items": {"type": "string", "minLength": 1},
+          "default": []
+        },
+        "deploy": {
+          "type": "array",
+          "minItems": 1,
+          "items": {"$ref": "#/$defs/entrypoint"}
+        },
+        "rollback": {
+          "type": "array",
+          "minItems": 1,
+          "items": {"$ref": "#/$defs/entrypoint"}
+        },
+        "rollback_verify": {
+          "type": "array",
+          "minItems": 1,
+          "items": {"$ref": "#/$defs/entrypoint"}
+        },
+        "smoke_tests": {
+          "type": "array",
+          "minItems": 1,
+          "items": {"$ref": "#/$defs/check"}
+        },
+        "diagnostics": {
+          "type": "array",
+          "minItems": 1,
+          "items": {"$ref": "#/$defs/entrypoint"}
+        }
+      }
+    },
+    "check": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["entrypoint", "success_evidence", "transient_evidence", "failure_evidence"],
+      "properties": {
+        "entrypoint": {"$ref": "#/$defs/entrypoint"},
+        "success_evidence": {"type": "string", "minLength": 1},
+        "transient_evidence": {"type": "string", "minLength": 1},
+        "failure_evidence": {"type": "string", "minLength": 1}
+      }
+    },
+    "entrypoint": {
+      "oneOf": [
+        {"$ref": "#/$defs/repositoryEntrypoint"},
+        {"$ref": "#/$defs/workflowEntrypoint"}
+      ]
+    },
+    "entrypointBase": {
+      "type": "object",
+      "required": ["name", "timeout_seconds", "mutates_target", "idempotent", "destructive"],
+      "properties": {
+        "name": {"type": "string", "minLength": 1},
+        "timeout_seconds": {"type": "integer", "minimum": 1},
+        "mutates_target": {"type": "boolean"},
+        "idempotent": {"type": "boolean"},
+        "destructive": {"type": "boolean"},
+        "external_log_reference": {"type": "string"}
+      }
+    },
+    "repositoryEntrypoint": {
+      "allOf": [
+        {"$ref": "#/$defs/entrypointBase"},
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "type",
+            "name",
+            "argv",
+            "cwd",
+            "timeout_seconds",
+            "mutates_target",
+            "idempotent",
+            "destructive"
+          ],
+          "properties": {
+            "type": {"const": "repository"},
+            "name": {"type": "string", "minLength": 1},
+            "argv": {
+              "type": "array",
+              "minItems": 1,
+              "items": {"type": "string"}
+            },
+            "cwd": {"type": "string", "minLength": 1},
+            "timeout_seconds": {"type": "integer", "minimum": 1},
+            "mutates_target": {"type": "boolean"},
+            "idempotent": {"type": "boolean"},
+            "destructive": {"type": "boolean"},
+            "destructive_authorization": {"type": "string", "minLength": 1},
+            "external_log_reference": {"type": "string"}
+          },
+          "allOf": [
+            {
+              "if": {
+                "properties": {"destructive": {"const": true}},
+                "required": ["destructive"]
+              },
+              "then": {"required": ["destructive_authorization"]}
+            }
+          ]
+        }
+      ]
+    },
+    "workflowEntrypoint": {
+      "allOf": [
+        {"$ref": "#/$defs/entrypointBase"},
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "type",
+            "name",
+            "provider",
+            "workflow",
+            "ref",
+            "inputs",
+            "timeout_seconds",
+            "mutates_target",
+            "idempotent",
+            "destructive"
+          ],
+          "properties": {
+            "type": {"const": "workflow"},
+            "name": {"type": "string", "minLength": 1},
+            "provider": {"type": "string", "minLength": 1},
+            "workflow": {"type": "string", "minLength": 1},
+            "ref": {"type": "string", "minLength": 1},
+            "inputs": {
+              "type": "object",
+              "additionalProperties": {"type": ["string", "integer", "boolean"]}
+            },
+            "timeout_seconds": {"type": "integer", "minimum": 1},
+            "mutates_target": {"type": "boolean"},
+            "idempotent": {"type": "boolean"},
+            "destructive": {"type": "boolean"},
+            "destructive_authorization": {"type": "string", "minLength": 1},
+            "external_log_reference": {"type": "string"}
+          },
+          "allOf": [
+            {
+              "if": {
+                "properties": {"destructive": {"const": true}},
+                "required": ["destructive"]
+              },
+              "then": {"required": ["destructive_authorization"]}
+            }
+          ]
+        }
+      ]
+    }
+  }
+}

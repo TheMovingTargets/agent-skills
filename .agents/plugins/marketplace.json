@@ -1,5 +1,5 @@
 {
-  "name": "agent-skills",
+  "name": "tmt-agent-skills",
   "plugins": [
     {
       "name": "cognitive-reload",

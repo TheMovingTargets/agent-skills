@@ -54,7 +54,14 @@ Do not generate executable files under `.tmt-agent-deploy/`. If automation is mi
 
 Record commands as argument arrays with explicit working directories. Record workflow identifiers, immutable refs where supported, validated inputs, monitor commands/APIs, and external log locations.
 
-Completion criterion: every executable step resolves to reviewed tracked automation or an established workflow.
+For every target-side command, add a non-mutating preflight that proves the
+exact prerequisite used later: executable path, required module or subcommand,
+and relevant version. A broad probe such as `python --version` does not prove
+that `python -m pip` or `python -m venv` works.
+
+Completion criterion: every executable step resolves to reviewed tracked
+automation or an established workflow, and target-side prerequisites are
+proven by exact invocations.
 
 ## 6. Resolve authentication and external controls
 

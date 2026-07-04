@@ -32,6 +32,13 @@ Validate `config.yaml` against `schemas/config.schema.json`. Its major sections 
 
 Repository entry points use `argv` arrays and explicit `cwd`. Workflow entry points identify the provider, workflow, ref, validated inputs, and external log reference. Values may reference validated runtime parameters; never interpolate unvalidated free text.
 
+During active runs, execute repository entry points only through
+`deploy_state.py run-entrypoint`. Its `--path` is relative to the selected
+target configuration, for example `build.0` or `components.0.deploy.0`.
+Separate command and checkpoint invocations are not an execution mechanism.
+Use `--attempt <n> --retryable` only for non-mutating idempotent attempts with
+another configured retry remaining. The final attempt must omit `--retryable`.
+
 An artifact marked `behavioral: true` participates in material drift review. SHA-256 changes trigger a re-read. The agent decides whether behavior changed materially, explains that decision, and asks for approval only when it did.
 
 ## Memory
@@ -58,7 +65,8 @@ Before every deployment, display:
 2. Environment, target, components, and validated runtime scope.
 3. Exact source commit, artifact digest, or release identity.
 4. Source-state and release-gate results.
-5. Credential-reference and tool readiness.
+5. Credential-reference readiness and exact target-side prerequisite results
+   for every later executable/module/subcommand.
 6. Current target health.
 7. Concurrency guard or explicit override.
 8. Ordered entry points and current SHA-256 values.

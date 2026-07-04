@@ -8,6 +8,7 @@ import hashlib
 import json
 import os
 import re
+import subprocess
 import sys
 import tempfile
 from datetime import datetime, timezone
@@ -36,6 +37,7 @@ SECRET_CONTENT = re.compile(
     r"-----BEGIN [A-Z ]*PRIVATE KEY-----|(?:^|\s)(?:gh[pousr]_|AKIA)[A-Za-z0-9_-]{12,}",
     re.MULTILINE,
 )
+SSH_UNSAFE_REMOTE_ARG = re.compile(r"[\s;|&()<>$`*?{}\[\]!\\]")
 
 
 class StateError(RuntimeError):
@@ -95,6 +97,47 @@ def secret_violations(value: Any, location: str = "$") -> list[str]:
     return violations
 
 
+def ssh_remote_argument_violations(value: Any, location: str = "$") -> list[str]:
+    violations: list[str] = []
+    if isinstance(value, dict):
+        argv = value.get("argv")
+        if (
+            value.get("type") == "repository"
+            and isinstance(argv, list)
+            and argv
+            and Path(argv[0]).name == "ssh"
+        ):
+            host_index = next(
+                (
+                    index
+                    for index, argument in enumerate(argv[1:], start=1)
+                    if isinstance(argument, str) and "@" in argument
+                ),
+                None,
+            )
+            if host_index is not None:
+                for index, argument in enumerate(
+                    argv[host_index + 1 :], start=host_index + 1
+                ):
+                    if isinstance(argument, str) and SSH_UNSAFE_REMOTE_ARG.search(
+                        argument
+                    ):
+                        violations.append(
+                            f"{location}.argv[{index}]: SSH remote arguments must "
+                            "be shell-safe tokens; use a tracked remote helper instead"
+                        )
+        for key, child in value.items():
+            violations.extend(
+                ssh_remote_argument_violations(child, f"{location}.{key}")
+            )
+    elif isinstance(value, list):
+        for index, child in enumerate(value):
+            violations.extend(
+                ssh_remote_argument_violations(child, f"{location}[{index}]")
+            )
+    return violations
+
+
 def leaf_validation_errors(error: Any) -> list[Any]:
     if not error.context:
         return [error]
@@ -124,6 +167,7 @@ def validate_config(repo: Path) -> dict[str, Any]:
         )
     )
     messages.extend(secret_violations(config))
+    messages.extend(ssh_remote_argument_violations(config))
     if config.get("validated_by", {}).get("version") != VERSION:
         messages.append(
             f"validated_by.version must equal installed skill version {VERSION!r}"
@@ -284,10 +328,45 @@ def checkpoint(
     component: str | None,
     external_log_reference: str | None,
 ) -> dict[str, Any]:
+    allowed_statuses = {
+        "running",
+        "succeeded",
+        "retryable-failure",
+        "failed",
+        "cancelled",
+    }
+    if status not in allowed_statuses:
+        raise StateError(
+            f"invalid checkpoint status {status!r}; expected one of "
+            + ", ".join(sorted(allowed_statuses))
+        )
     path = current_run_path(repo)
     if not path.exists():
         raise StateError("no active deployment")
     payload = load_yaml(path)
+    previous = next(
+        (
+            event
+            for event in reversed(payload.get("steps", []))
+            if event.get("step") == step
+        ),
+        None,
+    )
+    if previous is None and status != "running":
+        raise StateError(f"step {step!r} must checkpoint running before {status}")
+    if previous is not None:
+        previous_status = previous.get("status")
+        if previous_status in {
+            "succeeded",
+            "retryable-failure",
+            "failed",
+            "cancelled",
+        }:
+            raise StateError(
+                f"step {step!r} is already terminal with status {previous_status!r}"
+            )
+        if previous_status == "running" and status == "running":
+            raise StateError(f"step {step!r} is already running")
     event = {
         "at": utc_now(),
         "step": step,
@@ -300,14 +379,150 @@ def checkpoint(
         event["external_log_reference"] = external_log_reference
     payload["steps"].append(event)
     payload["updated_at"] = utc_now()
-    payload["status"] = status
-    if mutates_target and status in {"running", "succeeded", "failed", "cancelled"}:
+    if status == "failed":
+        payload["failure_recorded"] = True
+    if status == "cancelled":
+        payload["cancellation_recorded"] = True
+    if payload.get("failure_recorded"):
+        payload["status"] = "failed"
+    elif payload.get("cancellation_recorded"):
+        payload["status"] = "cancelled"
+    elif status == "retryable-failure":
+        payload["status"] = "retrying"
+    else:
+        payload["status"] = status
+    if mutates_target and status in {
+        "running",
+        "succeeded",
+        "retryable-failure",
+        "failed",
+        "cancelled",
+    }:
         payload["target_mutation_started"] = True
     if component and mutates_target and status == "succeeded":
         if component not in payload["changed_components"]:
             payload["changed_components"].append(component)
     atomic_yaml(path, payload)
     return payload
+
+
+def resolve_repository_entrypoint(
+    config: dict[str, Any],
+    environment: str,
+    target: str,
+    entrypoint_path: str,
+) -> tuple[dict[str, Any], str | None]:
+    try:
+        target_config: Any = config["environments"][environment]["targets"][target]
+    except KeyError as exc:
+        raise StateError(
+            f"unknown target {target!r} in environment {environment!r}"
+        ) from exc
+
+    value = target_config
+    parts = entrypoint_path.split(".")
+    if not parts or any(not part for part in parts):
+        raise StateError("entrypoint path must be a non-empty dotted path")
+    try:
+        for part in parts:
+            value = value[int(part)] if isinstance(value, list) else value[part]
+    except (KeyError, IndexError, TypeError, ValueError) as exc:
+        raise StateError(f"entrypoint path does not resolve: {entrypoint_path}") from exc
+
+    if not isinstance(value, dict) or value.get("type") != "repository":
+        raise StateError(
+            f"entrypoint path must resolve to a repository entrypoint: {entrypoint_path}"
+        )
+
+    component = None
+    if len(parts) >= 2 and parts[0] == "components":
+        try:
+            component = target_config["components"][int(parts[1])]["name"]
+        except (KeyError, IndexError, TypeError, ValueError) as exc:
+            raise StateError(
+                f"cannot resolve component for entrypoint: {entrypoint_path}"
+            ) from exc
+    return value, component
+
+
+def run_repository_entrypoint(
+    repo: Path,
+    environment: str,
+    target: str,
+    entrypoint_path: str,
+    attempt: int = 1,
+    retryable: bool = False,
+) -> int:
+    if attempt < 1:
+        raise StateError("entrypoint attempt must be at least 1")
+    config = validate_local_state(repo)
+    run_path = current_run_path(repo)
+    if not run_path.exists():
+        raise StateError("no active deployment")
+    run = load_yaml(run_path)
+    if run.get("environment") != environment or run.get("target") != target:
+        raise StateError("active deployment scope does not match requested entrypoint")
+    config_path = repo.resolve() / LOCAL_DIR / "config.yaml"
+    if run.get("configuration_sha256") != sha256(config_path):
+        raise StateError("configuration changed after the deployment started")
+
+    recovery_path = any(
+        segment in {"diagnostics", "rollback", "rollback_verify"}
+        for segment in entrypoint_path.split(".")
+    )
+    if run.get("failure_recorded") and not recovery_path:
+        raise StateError("deployment has failed; only diagnostics or rollback may run")
+
+    entrypoint, component = resolve_repository_entrypoint(
+        config, environment, target, entrypoint_path
+    )
+    if retryable and (entrypoint["mutates_target"] or not entrypoint["idempotent"]):
+        raise StateError(
+            "only non-mutating idempotent entrypoints may use retryable failure"
+        )
+    step = entrypoint["name"]
+    if attempt > 1:
+        step = f"{step} [attempt {attempt}]"
+    mutates_target = entrypoint["mutates_target"]
+    checkpoint(repo, step, "running", mutates_target, component, None)
+
+    cwd = Path(entrypoint["cwd"])
+    if not cwd.is_absolute():
+        cwd = repo.resolve() / cwd
+    try:
+        completed = subprocess.run(
+            entrypoint["argv"],
+            cwd=cwd,
+            timeout=entrypoint["timeout_seconds"],
+            check=False,
+        )
+        returncode = completed.returncode
+    except subprocess.TimeoutExpired:
+        print(
+            f"entrypoint timed out after {entrypoint['timeout_seconds']} seconds: {step}",
+            file=sys.stderr,
+        )
+        returncode = 124
+    except OSError as exc:
+        print(f"entrypoint could not execute: {step}: {exc}", file=sys.stderr)
+        returncode = 126
+
+    terminal_status = (
+        "succeeded"
+        if returncode == 0
+        else "retryable-failure"
+        if retryable
+        else "failed"
+    )
+    checkpoint(
+        repo,
+        step,
+        terminal_status,
+        mutates_target,
+        component,
+        entrypoint.get("external_log_reference"),
+    )
+    return returncode
 
 
 def finish_run(repo: Path, outcome: str, summary: Path) -> Path:
@@ -380,6 +595,14 @@ def main() -> int:
     mark.add_argument("--component")
     mark.add_argument("--external-log-reference")
 
+    execute = subparsers.add_parser("run-entrypoint")
+    execute.add_argument("--repo", default=".")
+    execute.add_argument("--environment", required=True)
+    execute.add_argument("--target", required=True)
+    execute.add_argument("--path", required=True)
+    execute.add_argument("--attempt", type=int, default=1)
+    execute.add_argument("--retryable", action="store_true")
+
     finish = subparsers.add_parser("finish-run")
     finish.add_argument("--repo", default=".")
     finish.add_argument(
@@ -417,6 +640,15 @@ def main() -> int:
                     args.component,
                     args.external_log_reference,
                 )
+            )
+        elif args.command == "run-entrypoint":
+            return run_repository_entrypoint(
+                repo,
+                args.environment,
+                args.target,
+                args.path,
+                args.attempt,
+                args.retryable,
             )
         else:
             print(finish_run(repo, args.outcome, args.summary))

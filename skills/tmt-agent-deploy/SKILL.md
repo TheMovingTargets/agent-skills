@@ -1,6 +1,6 @@
 ---
 name: tmt-agent-deploy
-description: Configure, execute, monitor, recover, and audit repository deployments. Use when a user asks to deploy or redeploy an application or component, prepare a repository for repeatable deployments, configure deployment targets, run smoke tests, roll back a failed release, recover an interrupted deployment, or change deployment confirmation policy.
+description: Configure, execute, monitor, recover, diagnose, and audit repository deployments. Use when a user asks to deploy or redeploy an application or component, prepare a repository for repeatable deployments, configure deployment targets, run smoke tests, roll back a failed release, recover an interrupted deployment, diagnose one or more failed or rolled-back deployment attempts, propose deployment fixes, or change deployment confirmation policy.
 ---
 
 # TMT Agent Deploy
@@ -13,19 +13,23 @@ Drive deployments through reviewed repository automation or established CI/CD wo
 - Keep executable deployment logic in tracked repository files or reviewed external workflows. `.tmt-agent-deploy/` contains configuration and state, never executable deployment scripts.
 - Never store secrets in `.tmt-agent-deploy/`. Store only environment-variable names, credential paths, identity-provider references, secret-manager identifiers, or authentication command references.
 - Execute local commands as argument arrays with an explicit working directory. Do not construct shell snippets or interpolate unvalidated parameters.
+- During an active run, execute every repository entry point through `deploy_state.py run-entrypoint`. Never execute a repository command and checkpoint it as separate shell commands.
 - Run configured sub-deployments sequentially in dependency order. Roll back every changed component in reverse order.
 - Require reviewed rollback and rollback verification for every target. Block irreversible migrations unless application rollback remains compatible or the user gives exact destructive authorization for a documented recovery plan.
 - Require exact authorization for deletion, replacement, downgrade, secret rotation, irreversible migration, or any other destructive external change regardless of confirmation policy.
 - Prefer existing CI/CD deployment workflows. Treat a reviewed workflow as one step unless it exposes native approval gates. Do not make missing CI/CD a blocker when reviewed local automation exists.
 - Persist only sanitized run summaries. Never copy command output or external logs into local state.
 - Stop after rollback. Never retry a failed deployment automatically.
+- Keep post-run diagnosis read-only. Diagnosis is not approval to edit automation, change external systems, or start another deployment.
+- Separate observed evidence, supported inferences, and unverified hypotheses. Never present a plausible fix as a proven root cause.
 
 ## Select a branch
 
 1. If `.tmt-agent-deploy/config.yaml` is absent or setup is incomplete, run **Setup**.
-2. If the user asks to change deployment configuration, run **Reconfigure**.
-3. If `state/current-run.yaml` records an unfinished run, run **Recover** before any new deployment.
-4. Otherwise run **Deploy**.
+2. If `state/current-run.yaml` records an unfinished run, run **Recover** before diagnosis, reconfiguration, or a new deployment.
+3. If the user asks why a completed deployment failed, mentions repeated failed attempts, or asks for deployment fixes, run **Diagnose failed deployment**.
+4. If the user asks to change deployment configuration, run **Reconfigure**.
+5. Otherwise run **Deploy**.
 
 When an initial request asks for deployment, continue from Setup into Deploy without requiring a new request.
 
@@ -103,6 +107,7 @@ Verify every configured precondition, including:
 - source and artifact identity;
 - source-state policy;
 - credential references and tooling;
+- exact target-side prerequisites used by later entry points (executable path, required module/subcommand, and version), not merely a related tool version;
 - current target health;
 - concurrency guard;
 - backup or restore point for persistent data;
@@ -128,8 +133,23 @@ For each configured entry point:
 
 1. Confirm it still resolves to a reviewed tracked artifact or workflow.
 2. Under `each-step`, show it and wait for approval.
-3. Checkpoint before and after execution.
-4. Apply the configured timeout.
+3. For a repository entry point, run:
+
+   ```text
+   <local-python> scripts/deploy_state.py run-entrypoint --repo <repository-root> --environment <name> --target <name> --path <target-relative-config-path>
+   ```
+
+   Use paths such as `build.0`, `components.0.deploy.0`, or
+   `components.0.smoke_tests.0.entrypoint`. The runner loads the reviewed argv,
+   cwd, timeout, mutation metadata, and component from the validated
+   configuration; checkpoints `running`; executes without a shell; checkpoints
+   exactly one terminal result; and returns the entry point's nonzero status.
+   For a non-mutating idempotent smoke/diagnostic attempt that has another
+   configured retry remaining, add `--attempt <n> --retryable`. This records
+   `retryable-failure` without clearing or disguising it. Omit `--retryable` on
+   the final allowed attempt so a final failure becomes terminal.
+4. For an external workflow, checkpoint immediately around the provider call;
+   never chain the call and terminal checkpoint in one shell invocation.
 5. Never retry a mutating step unless it is marked idempotent.
 6. Save only a structured result summary and an external log reference.
 
@@ -150,7 +170,9 @@ If rollback or verification fails, enter emergency stop: run only configured dia
 
 ### 7. Finish
 
-Write a sanitized Markdown summary, clear the active checkpoint only after final state is known, and retain the newest 50 summaries:
+Write the sanitized Markdown summary directly inside
+`.tmt-agent-deploy/runs/`, clear the active checkpoint only after final state
+is known, and retain the newest 50 summaries:
 
 ```text
 <local-python> scripts/deploy_state.py finish-run --repo <repository-root> --outcome <succeeded|rolled-back|failed|cancelled> --summary <summary-file>
@@ -171,3 +193,18 @@ Read `state/current-run.yaml`, external run status, and configured recovery entr
 - If rollback cannot be verified, enter emergency stop.
 
 Recovery is complete only when target state is verified, the interrupted run is finalized, and its summary is written.
+
+## Diagnose failed deployment
+
+Read [references/diagnose-failed-deployment.md](references/diagnose-failed-deployment.md) completely and follow it. This mode applies only after the run has reached a final state and `state/current-run.yaml` is absent.
+
+Treat diagnosis as a separate read-only phase:
+
+1. Establish the final target state before analyzing causes.
+2. Read the failed or rolled-back run summary, its recorded configuration identity, the current configuration and deployment memory, behavioral artifacts, and referenced external logs. Flag any hash mismatch instead of treating current configuration as historical evidence.
+3. Compare at least the latest two relevant unsuccessful runs when failures are repeated.
+4. Reconstruct the failure boundary and determine which steps did and did not execute.
+5. Classify the primary cause, contributing factors, rollback weaknesses, and evidence gaps.
+6. Propose ranked fixes with exact artifacts, validation commands, dry runs, and deployment-readiness gates.
+
+Do not edit repository automation or local deployment configuration unless the user separately asks to implement a proposed fix. Never start or resume a deployment from diagnosis mode. A later deployment request starts a new run and still requires validation plus mandatory preflight approval.

@@ -1,7 +1,7 @@
 schema_version: "1"
 validated_by:
   skill: tmt-agent-deploy
-  version: 0.1.0
+  version: 0.3.1
 confirmation_policy: each-step
 defaults:
   step_timeout_seconds: 300

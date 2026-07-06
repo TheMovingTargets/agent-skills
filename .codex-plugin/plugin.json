@@ -2,5 +2,5 @@
   "name": "cognitive-reload",
   "version": "0.6.1",
   "description": "Guided, resumable codebase tutoring with HITL cognition tracking.",
-  "skills": "./skills/"
+  "skills": "./skills/cognitive-reload"
 }

@@ -1,0 +1,147 @@
+schema_version: "1"
+validated_by:
+  skill: tmt-agent-deploy
+  version: 0.3.1
+confirmation_policy: each-step
+defaults:
+  step_timeout_seconds: 300
+  diagnostic_retry_count: 2
+  diagnostic_retry_delay_seconds: 5
+  max_diagnostic_seconds: 60
+  run_summary_retention: 50
+credential_refs:
+  - name: deploy-key
+    kind: file-path
+    reference: ~/.ssh/deploy.pem
+artifacts:
+  - path: deploy.sh
+    role: deployment entry point
+    behavioral: true
+environments:
+  production:
+    description: Production
+    criticality: production
+    targets:
+      web:
+        description: Production web service
+        parameters:
+          user_id:
+            type: string
+            required: false
+            pattern: "^[a-z0-9-]+$"
+        source:
+          kind: git
+          identity_template: commit:{git_sha}
+          immutable: true
+          preconditions:
+            - type: repository
+              name: verify source
+              argv: ["./deploy.sh", "verify-source"]
+              cwd: "."
+              timeout_seconds: 30
+              mutates_target: false
+              idempotent: true
+              destructive: false
+        concurrency:
+          kind: repository-lock
+          check:
+            type: repository
+            name: verify deployment lock
+            argv: ["./deploy.sh", "check-lock"]
+            cwd: "."
+            timeout_seconds: 30
+            mutates_target: false
+            idempotent: true
+            destructive: false
+          override_requires_explicit_approval: true
+        baseline_health:
+          type: repository
+          name: baseline health
+          argv: ["./deploy.sh", "health"]
+          cwd: "."
+          timeout_seconds: 30
+          mutates_target: false
+          idempotent: true
+          destructive: false
+        persistent_data: false
+        preflight:
+          - type: repository
+            name: preflight
+            argv: ["./deploy.sh", "preflight"]
+            cwd: "."
+            timeout_seconds: 30
+            mutates_target: false
+            idempotent: true
+            destructive: false
+        build:
+          - type: repository
+            name: build artifact
+            argv: ["./deploy.sh", "build"]
+            cwd: "."
+            timeout_seconds: 300
+            mutates_target: false
+            idempotent: true
+            destructive: false
+        components:
+          - name: web
+            depends_on: []
+            deploy:
+              - type: repository
+                name: deploy web
+                argv: ["./deploy.sh", "deploy"]
+                cwd: "."
+                timeout_seconds: 300
+                mutates_target: true
+                idempotent: false
+                destructive: false
+            rollback:
+              - type: repository
+                name: rollback web
+                argv: ["./deploy.sh", "rollback"]
+                cwd: "."
+                timeout_seconds: 300
+                mutates_target: true
+                idempotent: true
+                destructive: false
+            rollback_verify:
+              - type: repository
+                name: verify rollback
+                argv: ["./deploy.sh", "verify-rollback"]
+                cwd: "."
+                timeout_seconds: 60
+                mutates_target: false
+                idempotent: true
+                destructive: false
+            smoke_tests:
+              - entrypoint:
+                  type: repository
+                  name: smoke test
+                  argv: ["./deploy.sh", "smoke"]
+                  cwd: "."
+                  timeout_seconds: 60
+                  mutates_target: false
+                  idempotent: true
+                  destructive: false
+                success_evidence: health endpoint and asset return 200
+                transient_evidence: DNS or transport error with healthy provider status
+                failure_evidence: repeated application error after diagnostics
+            diagnostics:
+              - type: repository
+                name: diagnose
+                argv: ["./deploy.sh", "diagnose"]
+                cwd: "."
+                timeout_seconds: 60
+                mutates_target: false
+                idempotent: true
+                destructive: false
+        dry_run:
+          - type: repository
+            name: deployment dry run
+            argv: ["./deploy.sh", "dry-run"]
+            cwd: "."
+            timeout_seconds: 60
+            mutates_target: false
+            idempotent: true
+            destructive: false
+        recovery_references:
+          - https://example.invalid/runbook

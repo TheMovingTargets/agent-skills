@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.8.0 - 2026-07-01
+
+- Tighten model invocation around six distinct codebase-tutoring and cognition-publishing triggers.
+- Make the zoom ladder, assessment gate, and private checkpoint the leading concepts for session control.
+- Replace duplicated branch instructions with conditional pointers to their authoritative references.
+- Add checkable completion criteria for startup, orientation, topic teaching, progress checkpoints, publishing, and pausing.
+
 ## 0.7.1 - 2026-07-01
 
 - Add an `--uninstall` flag to the installer that removes the skill from the same target/`--native` paths it installs to, so a repo falls back to any user-level install; it tidies now-empty `skills` dirs and refuses to delete the running source checkout.

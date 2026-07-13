@@ -11,6 +11,7 @@ ROOT = Path(__file__).resolve().parents[1]
 SKILLS = {
     "cognitive-reload": ROOT / "skills" / "cognitive-reload",
     "tmt-agent-deploy": ROOT / "skills" / "tmt-agent-deploy",
+    "tmt-codex-plan-review": ROOT / "skills" / "tmt-codex-plan-review",
 }
 
 

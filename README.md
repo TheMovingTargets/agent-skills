@@ -47,6 +47,22 @@ npx skills@latest add TheMovingTargets/agent-skills \
   --skill cognitive-reload
 ```
 
+### TMT Codex Plan Review
+
+Adversarial cross-model review of a plan, design, or PRD via the Codex CLI. TMT Codex Plan Review:
+
+- Assembles a self-contained review packet: context, the plan verbatim, attack vectors, and a strict output contract.
+- Runs Codex read-only against the repository (`codex exec --sandbox read-only`).
+- Relays findings verbatim (severity, code evidence, amendments, verdict), then dispositions each one: accept, reject, or defer.
+- Fails loudly with remediation when Codex is unavailable — it never substitutes a same-model review.
+
+Install only TMT Codex Plan Review:
+
+```bash
+npx skills@latest add TheMovingTargets/agent-skills \
+  --skill tmt-codex-plan-review
+```
+
 ## Install Options
 
 Install into the current project or folder:

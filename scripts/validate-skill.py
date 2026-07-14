@@ -12,6 +12,7 @@ SKILLS = {
     "cognitive-reload": ROOT / "skills" / "cognitive-reload",
     "tmt-agent-deploy": ROOT / "skills" / "tmt-agent-deploy",
     "tmt-codex-plan-review": ROOT / "skills" / "tmt-codex-plan-review",
+    "tmt-field-debug": ROOT / "skills" / "tmt-field-debug",
 }
 
 
@@ -67,6 +68,8 @@ def main() -> int:
         ROOT / "skills" / "tmt-agent-deploy" / "schemas" / "config.schema.json",
         ROOT / "skills" / "tmt-agent-deploy" / "scripts" / "bootstrap.py",
         ROOT / "skills" / "tmt-agent-deploy" / "scripts" / "deploy_state.py",
+        ROOT / "skills" / "tmt-field-debug" / "VERSION",
+        ROOT / "skills" / "tmt-field-debug" / "references" / "report-contract.md",
         ROOT / "scripts" / "test-tmt-agent-deploy.py",
     ]
     errors.extend(

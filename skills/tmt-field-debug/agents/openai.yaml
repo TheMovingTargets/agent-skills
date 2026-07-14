@@ -1,0 +1,4 @@
+interface:
+  display_name: "TMT Field Debug"
+  short_description: "Diagnose live deployment failures safely"
+  default_prompt: "Use $tmt-field-debug to investigate this deployed-system issue and produce an implementation-ready diagnosis."

@@ -33,6 +33,23 @@ Provider- and harness-neutral deployment setup and execution. TMT Agent Deploy:
 - Runs smoke tests, diagnoses failures, and automatically invokes reviewed rollback.
 - Produces sanitized local run summaries with external log references.
 
+### TMT Field Debug
+
+Read-only field diagnosis for incidents on deployed infrastructure. TMT Field Debug:
+
+- Consumes TMT Agent Deploy run records, source identity, and external log references.
+- Correlates bounded remote logs, health evidence, traces, metrics, and deployed versions.
+- Tests ranked hypotheses with production-safe, read-only probes.
+- Stops for clarification whenever target, safety, or evidence meaning is ambiguous.
+- Produces a sanitized Markdown diagnosis with an implementation-ready brief.
+
+Install only TMT Field Debug:
+
+```bash
+npx skills@latest add TheMovingTargets/agent-skills \
+  --skill tmt-field-debug
+```
+
 Install only TMT Agent Deploy:
 
 ```bash
@@ -45,6 +62,22 @@ Install only Cognitive Reload:
 ```bash
 npx skills@latest add TheMovingTargets/agent-skills \
   --skill cognitive-reload
+```
+
+### TMT Codex Plan Review
+
+Adversarial cross-model review of a plan, design, or PRD via the Codex CLI. TMT Codex Plan Review:
+
+- Assembles a self-contained review packet: context, the plan verbatim, attack vectors, and a strict output contract.
+- Runs Codex read-only against the repository (`codex exec --sandbox read-only`).
+- Relays findings verbatim (severity, code evidence, amendments, verdict), then dispositions each one: accept, reject, or defer.
+- Fails loudly with remediation when Codex is unavailable — it never substitutes a same-model review.
+
+Install only TMT Codex Plan Review:
+
+```bash
+npx skills@latest add TheMovingTargets/agent-skills \
+  --skill tmt-codex-plan-review
 ```
 
 ## Install Options
@@ -121,6 +154,12 @@ To change confirmation policy or another persisted setting:
 Use tmt-agent-deploy in reconfiguration mode and change the confirmation policy.
 ```
 
+To investigate a problem on an already-deployed service:
+
+```text
+Use tmt-field-debug to diagnose the production API errors since the latest rollout. Use the deployment run and remote logs, test safe hypotheses, and write an implementation-ready report.
+```
+
 ## Privacy
 
 Cognitive Reload stores private learner progress locally by default, outside the target repository. Public HITL exports exclude GitHub login, raw learner questions, and raw assessment answers.
@@ -128,6 +167,8 @@ Cognitive Reload stores private learner progress locally by default, outside the
 The skill should not write repository files unless the user approves a publish or export step.
 
 TMT Agent Deploy stores repository-specific configuration, state, and sanitized run summaries under the gitignored `.tmt-agent-deploy/` directory. It prohibits secrets in that directory and stores only credential paths or references.
+
+TMT Field Debug writes sanitized reports with evidence references rather than raw remote logs, credentials, or sensitive payloads.
 
 ## Repository Layout
 
@@ -146,6 +187,10 @@ skills/
     schemas/
     scripts/
     tests/
+  tmt-field-debug/
+    SKILL.md
+    agents/
+    references/
 .claude-plugin/
   plugin.json
 .codex-plugin/
@@ -154,7 +199,7 @@ skills/
   marketplace.json
 ```
 
-Canonical skill sources live under `skills/<skill-name>`. The existing Claude and Codex plugin manifests remain compatibility layers for Cognitive Reload; use the open Skills CLI to install `tmt-agent-deploy`.
+Canonical skill sources live under `skills/<skill-name>`. The existing Claude and Codex plugin manifests remain compatibility layers for Cognitive Reload; use the open Skills CLI to install `tmt-agent-deploy` or `tmt-field-debug`.
 
 ## Update
 

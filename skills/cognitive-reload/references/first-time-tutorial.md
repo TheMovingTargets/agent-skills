@@ -18,7 +18,7 @@ Do not skip a rung:
 6. **Code:** Which small excerpts implement the selected concept?
 7. **Tests:** What behavior or invariant do they prove?
 
-Only descend when the learner says `continue`, `next`, or asks a question that requires more detail.
+Only advance the main reload path when the learner says `continue`, `next`, or explicitly names a new destination. A question may temporarily zoom deeper to answer it, but preserve the main-path cursor and return to the prior rung afterward.
 
 ## Learning-path ordering
 

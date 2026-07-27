@@ -11,7 +11,7 @@ Answer in this order:
 2. Connect each term to the displayed code.
 3. Use one small comparison table or one concrete example when it improves intuition.
 4. Explain why the distinction matters in this function.
-5. End with one focused invitation based on the likely point of confusion.
+5. End with a short route reminder when the answer or any offered follow-up could make the next step ambiguous.
 
 Default to 100-220 words. Expand only when the learner asks for exhaustive detail.
 
@@ -29,6 +29,25 @@ the claims and stamps device C onto the event.
 ```
 
 Then explain special cases such as `identity is None` in plain language.
+
+## Preserve the reload path
+
+Before answering, snapshot the main-path `location` and `advance` defined in `SKILL.md`. The question opens a temporary detour; it does not consume or replace either value.
+
+- Answer follow-up questions as nested detours and restore the same main-path cursor when each answer is complete.
+- Do not make a repository read, newly mentioned file, example, or optional follow-up the new `advance`.
+- Do not interpret acknowledgements such as `got it`, `makes sense`, or `okay` as route changes.
+- Interpret bare `continue` or `next` as the saved `advance`, even if the clarification ended by mentioning another interesting path.
+- Change the route only when the learner names the destination, for example `keep tracing identity creation` or `switch to persistence`.
+
+When ambiguity is plausible, close with a breadcrumb such as:
+
+```text
+The reload path is still paused at `_scope_agent_event`. Say `continue` to inspect
+the validation test; say `trace identity creation` if you want that side path instead.
+```
+
+Keep the breadcrumb to one sentence and name the actual saved destination. Do not offer a generic navigation menu. If the clarification is brief and the route is obvious, omit the breadcrumb.
 
 ## Evidence budget
 
@@ -50,8 +69,8 @@ Then explain special cases such as `identity is None` in plain language.
 - Do not append unrelated gaps, risks, or repository findings. Mention one only when it
   changes the answer or the learner asks about risks.
 - Do not announce internal searches, progress mutations, or evidence collection.
-- Do not end every answer with a generic navigation menu. Ask one relevant follow-up,
-  such as whether to trace where `identity` is created or inspect the `None` path.
+- Offer at most one relevant detour and give it a named action, such as `trace where
+  identity is created`; never bind a bare `continue` or `next` to that detour.
 
 ## Avoid
 

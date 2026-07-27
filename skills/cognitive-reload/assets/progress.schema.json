@@ -43,7 +43,14 @@
       "required": ["summary", "next_anchor"],
       "properties": {
         "summary": {"type": "string"},
-        "next_anchor": {"type": ["string", "null"]}
+        "topic": {"type": ["string", "null"]},
+        "rung": {
+          "type": ["string", "null"],
+          "enum": ["purpose", "actors", "containers", "journeys", "topics", "topic_concept", "code", "tests", null]
+        },
+        "current_anchor": {"type": ["string", "null"]},
+        "next_anchor": {"type": ["string", "null"]},
+        "next_step": {"type": ["string", "null"]}
       },
       "additionalProperties": false
     }

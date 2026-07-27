@@ -31,7 +31,13 @@ Use `assets/progress.schema.json` as the contract. Preserve:
 - concepts and code anchors shown
 - learner questions and unresolved questions
 - assessment attempts and latest verified score
-- exact resume point
+- exact main-path resume route: topic, rung, current anchor, and executable next step
+
+Persist the main reload path, not the most recent clarification detour. In `resume`,
+use `next_step` for the concrete action that a bare `continue` or `next` should perform.
+Keep `next_anchor` for the destination anchor when one exists. Older records without
+the added route fields remain valid; reconstruct the safest route from `summary` and
+`next_anchor`, and preserve it through any opening questions.
 
 ## Semantics
 
@@ -48,7 +54,8 @@ Do not read and rewrite the progress artifact for every learner question. Record
 in session memory and persist them after a meaningful topic segment, on a topic switch,
 when pausing, or after assessment. Answer clarification questions before any checkpoint
 tool call. This keeps tutoring responsive and avoids exposing bookkeeping during a simple
-code discussion.
+code discussion. A clarification may add a learner question, but it must not overwrite
+the persisted main-path resume route.
 
 ## Resume behavior
 

@@ -1,0 +1,4 @@
+interface:
+  display_name: "TMT Smart Merge"
+  short_description: "Resolve Git conflicts without losing intent"
+  default_prompt: "Use $tmt-smart-merge to inspect and resolve these Git conflicts with deliberate decision gates."

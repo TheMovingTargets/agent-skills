@@ -26,6 +26,10 @@
   "unresolved_questions": ["Whether nested metadata is validated recursively"],
   "resume": {
     "summary": "Mapped the event journey and explored server-side tenant/device scoping.",
-    "next_anchor": "schemas.py:UsageEventIn metadata validator"
+    "topic": "event_journey",
+    "rung": "code",
+    "current_anchor": "apps/api/routers/events.py:_scope_agent_event",
+    "next_anchor": "schemas.py:UsageEventIn metadata validator",
+    "next_step": "Show the metadata validator excerpt and explain whether validation is recursive."
   }
 }

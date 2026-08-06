@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.8.1 - 2026-07-27
+
+- Add an explicit main-path reload cursor with a concrete next teaching action.
+- Treat clarifications and nested digressions as temporary detours that restore the saved cursor.
+- Keep bare `continue` and `next` bound to the main path unless the learner explicitly names a new destination.
+- Persist structured resume route fields without invalidating existing progress records.
+
 ## 0.8.0 - 2026-07-01
 
 - Tighten model invocation around six distinct codebase-tutoring and cognition-publishing triggers.

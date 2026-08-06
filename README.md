@@ -50,6 +50,23 @@ npx skills@latest add TheMovingTargets/agent-skills \
   --skill tmt-field-debug
 ```
 
+### TMT Smart Merge
+
+Deliberate, intent-preserving Git conflict resolution. TMT Smart Merge:
+
+- Reconstructs both histories from commits, index stages, code, tests, and documentation.
+- Interviews one decision at a time and recommends an answer with concrete consequences.
+- Keeps opening decision gates as later conflicts, tests, and history reveal new tradeoffs.
+- Resolves semantic clusters instead of blindly choosing “ours” or “theirs.”
+- Verifies combined behavior and requires separate approval before staging and continuing.
+
+Install only TMT Smart Merge:
+
+```bash
+npx skills@latest add TheMovingTargets/agent-skills \
+  --skill tmt-smart-merge
+```
+
 Install only TMT Agent Deploy:
 
 ```bash
@@ -160,6 +177,12 @@ To investigate a problem on an already-deployed service:
 Use tmt-field-debug to diagnose the production API errors since the latest rollout. Use the deployment run and remote logs, test safe hypotheses, and write an implementation-ready report.
 ```
 
+To resolve an interrupted integration without losing either branch's intent:
+
+```text
+Use tmt-smart-merge to inspect this conflicted rebase, interview me one decision at a time, resolve approved semantic clusters, and ask before staging or continuing.
+```
+
 ## Privacy
 
 Cognitive Reload stores private learner progress locally by default, outside the target repository. Public HITL exports exclude GitHub login, raw learner questions, and raw assessment answers.
@@ -191,6 +214,10 @@ skills/
     SKILL.md
     agents/
     references/
+  tmt-smart-merge/
+    SKILL.md
+    agents/
+    references/
 .claude-plugin/
   plugin.json
 .codex-plugin/
@@ -199,7 +226,7 @@ skills/
   marketplace.json
 ```
 
-Canonical skill sources live under `skills/<skill-name>`. The existing Claude and Codex plugin manifests remain compatibility layers for Cognitive Reload; use the open Skills CLI to install `tmt-agent-deploy` or `tmt-field-debug`.
+Canonical skill sources live under `skills/<skill-name>`. The existing Claude and Codex plugin manifests remain compatibility layers for Cognitive Reload; use the open Skills CLI to install `tmt-agent-deploy`, `tmt-field-debug`, or `tmt-smart-merge`.
 
 ## Update
 

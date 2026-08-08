@@ -10,6 +10,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 SKILLS = {
     "cognitive-reload": ROOT / "skills" / "cognitive-reload",
+    "pdf-signature-emded": ROOT / "skills" / "pdf-signature-emded",
     "tmt-agent-deploy": ROOT / "skills" / "tmt-agent-deploy",
     "tmt-codex-plan-review": ROOT / "skills" / "tmt-codex-plan-review",
     "tmt-field-debug": ROOT / "skills" / "tmt-field-debug",
@@ -64,6 +65,10 @@ def main() -> int:
         ROOT / ".agents" / "plugins" / "marketplace.json",
         ROOT / "skills" / "cognitive-reload" / "scripts" / "progress_store.py",
         ROOT / "skills" / "cognitive-reload" / "scripts" / "export_hitl_cognition.py",
+        ROOT / "skills" / "pdf-signature-emded" / "VERSION",
+        ROOT / "skills" / "pdf-signature-emded" / "requirements.txt",
+        ROOT / "skills" / "pdf-signature-emded" / "references" / "config-format.md",
+        ROOT / "skills" / "pdf-signature-emded" / "scripts" / "pdf_signature_embed.py",
         ROOT / "skills" / "tmt-agent-deploy" / "VERSION",
         ROOT / "skills" / "tmt-agent-deploy" / "requirements.txt",
         ROOT / "skills" / "tmt-agent-deploy" / "schemas" / "config.schema.json",

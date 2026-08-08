@@ -52,12 +52,12 @@ npx skills@latest add TheMovingTargets/agent-skills \
 
 ### PDF Signature Emded
 
-Visible PDF signature image placement with reusable JSON placement configs. PDF Signature Emded:
+Visible PDF and Word signature image placement with reusable JSON placement configs. PDF Signature Emded:
 
-- Interviews users to translate signature placement intent into deterministic PDF coordinates.
+- Interviews users to translate signature placement intent into deterministic PDF coordinates or DOCX text anchors.
 - Saves portable JSON configs for repeatable batch signing.
-- Applies one or more signature images to one or more PDFs while preserving original inputs.
-- Uses structural validation before writing signed PDF copies.
+- Applies one or more signature images to one or more PDFs or Word documents while preserving original inputs.
+- Uses structural validation before writing signed document copies.
 
 Install only PDF Signature Emded:
 

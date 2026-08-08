@@ -3,6 +3,8 @@ from __future__ import annotations
 
 import argparse
 import json
+import re
+import shutil
 import sys
 from dataclasses import dataclass
 from pathlib import Path
@@ -25,6 +27,18 @@ def load_fitz():
             "PyMuPDF is required. Install it with: python3 -m pip install pymupdf"
         ) from exc
     return fitz
+
+
+def load_docx():
+    try:
+        import docx  # type: ignore
+        from docx.shared import Inches  # type: ignore
+    except ImportError as exc:
+        raise SystemExit(
+            "python-docx is required for Word documents. "
+            "Install it with: python3 -m pip install python-docx"
+        ) from exc
+    return docx, Inches
 
 
 def read_json(path: Path) -> dict[str, Any]:
@@ -58,11 +72,32 @@ def require_number(obj: dict[str, Any], key: str, context: str) -> float:
     return float(value)
 
 
+def validate_string_list(value: Any, context: str) -> None:
+    if value is None:
+        return
+    if not isinstance(value, list) or any(not isinstance(item, str) for item in value):
+        raise ConfigError(f"{context}: must be an array of strings")
+
+
+def portable_path(config_path: Path, path: Path) -> str:
+    resolved = path.expanduser().resolve()
+    try:
+        return str(resolved.relative_to(config_path.parent.resolve()))
+    except ValueError:
+        return str(resolved)
+
+
+def safe_asset_name(name: str) -> str:
+    cleaned = re.sub(r"[^A-Za-z0-9._-]+", "-", name).strip("-")
+    return cleaned or "signature"
+
+
 @dataclass(frozen=True)
 class DocumentSpec:
     id: str
     path: Path
     output: Path
+    kind: str
 
 
 @dataclass(frozen=True)
@@ -75,14 +110,17 @@ class SignatureSpec:
 class PlacementSpec:
     document: str
     signature: str
-    page: int
+    page: int | None
     anchor: str
-    x: float
-    y: float
+    x: float | None
+    y: float | None
     width: float
     height: float | None
     rotation: int
     label: str | None
+    mode: str | None
+    placeholder: str | None
+    paragraph: str | None
 
 
 @dataclass(frozen=True)
@@ -96,6 +134,7 @@ def parse_config(config_path: Path, check_files: bool = True) -> SignatureConfig
     data = read_json(config_path)
     if data.get("version") != 1:
         raise ConfigError("version must be 1")
+    validate_string_list(data.get("customization_instructions"), "customization_instructions")
 
     documents_raw = data.get("documents")
     signatures_raw = data.get("signatures")
@@ -117,9 +156,22 @@ def parse_config(config_path: Path, check_files: bool = True) -> SignatureConfig
             raise ConfigError(f"{context}: duplicate document id {doc_id!r}")
         path = resolve_path(config_path, require_string(item, "path", context))
         output = resolve_path(config_path, require_string(item, "output", context))
+        doc_type = item.get("type")
+        if doc_type is None:
+            suffix = path.suffix.lower()
+            if suffix == ".pdf":
+                doc_type = "pdf"
+            elif suffix == ".docx":
+                doc_type = "docx"
+            else:
+                raise ConfigError(
+                    f"{context}: type is required for unsupported extension {suffix!r}"
+                )
+        if doc_type not in {"pdf", "docx"}:
+            raise ConfigError(f"{context}: type must be 'pdf' or 'docx'")
         if check_files and not path.exists():
-            raise ConfigError(f"{context}: PDF not found: {path}")
-        documents[doc_id] = DocumentSpec(doc_id, path, output)
+            raise ConfigError(f"{context}: document not found: {path}")
+        documents[doc_id] = DocumentSpec(doc_id, path, output, str(doc_type))
 
     signatures: dict[str, SignatureSpec] = {}
     for index, item in enumerate(signatures_raw):
@@ -132,6 +184,10 @@ def parse_config(config_path: Path, check_files: bool = True) -> SignatureConfig
         path = resolve_path(config_path, require_string(item, "path", context))
         if check_files and not path.exists():
             raise ConfigError(f"{context}: signature image not found: {path}")
+        validate_string_list(
+            item.get("customization_instructions"),
+            f"{context}.customization_instructions",
+        )
         signatures[sig_id] = SignatureSpec(sig_id, path)
 
     placements: list[PlacementSpec] = []
@@ -145,14 +201,24 @@ def parse_config(config_path: Path, check_files: bool = True) -> SignatureConfig
             raise ConfigError(f"{context}: unknown document id {document!r}")
         if signature not in signatures:
             raise ConfigError(f"{context}: unknown signature id {signature!r}")
+        doc_kind = documents[document].kind
         page = item.get("page")
-        if not isinstance(page, int) or page < 1:
+        if doc_kind == "pdf":
+            if not isinstance(page, int) or page < 1:
+                raise ConfigError(f"{context}: page must be a 1-based integer")
+        elif page is not None and (not isinstance(page, int) or page < 1):
             raise ConfigError(f"{context}: page must be a 1-based integer")
         anchor = item.get("anchor", "bottom-left")
         if anchor not in ANCHORS:
             raise ConfigError(f"{context}: anchor must be one of {sorted(ANCHORS)}")
-        x = require_number(item, "x", context)
-        y = require_number(item, "y", context)
+        x = None
+        y = None
+        if doc_kind == "pdf":
+            x = require_number(item, "x", context)
+            y = require_number(item, "y", context)
+        elif "x" in item or "y" in item:
+            x = require_number(item, "x", context)
+            y = require_number(item, "y", context)
         width = require_number(item, "width", context)
         if width <= 0:
             raise ConfigError(f"{context}: width must be positive")
@@ -168,6 +234,32 @@ def parse_config(config_path: Path, check_files: bool = True) -> SignatureConfig
         label = item.get("label")
         if label is not None and not isinstance(label, str):
             raise ConfigError(f"{context}: label must be a string")
+        mode = item.get("mode")
+        placeholder = item.get("placeholder")
+        paragraph = item.get("paragraph")
+        if doc_kind == "docx":
+            if mode is None:
+                if isinstance(placeholder, str):
+                    mode = "placeholder"
+                elif isinstance(paragraph, str):
+                    mode = "after-paragraph"
+                else:
+                    mode = "append"
+            if mode not in {"placeholder", "after-paragraph", "append"}:
+                raise ConfigError(
+                    f"{context}: mode must be placeholder, after-paragraph, or append"
+                )
+            if mode == "placeholder" and not isinstance(placeholder, str):
+                raise ConfigError(f"{context}: placeholder must be a string")
+            if mode == "after-paragraph" and not isinstance(paragraph, str):
+                raise ConfigError(f"{context}: paragraph must be a string")
+        else:
+            if mode is not None:
+                raise ConfigError(f"{context}: mode is only supported for docx")
+            if placeholder is not None or paragraph is not None:
+                raise ConfigError(
+                    f"{context}: placeholder and paragraph are only supported for docx"
+                )
         placements.append(
             PlacementSpec(
                 document=document,
@@ -180,6 +272,9 @@ def parse_config(config_path: Path, check_files: bool = True) -> SignatureConfig
                 height=height,
                 rotation=int(rotation),
                 label=label,
+                mode=str(mode) if mode is not None else None,
+                placeholder=placeholder,
+                paragraph=paragraph,
             )
         )
 
@@ -204,6 +299,8 @@ def placement_rect(
     width = placement.width
     height = placement.height or (width * image_height / image_width)
 
+    if placement.x is None or placement.y is None:
+        raise ConfigError("PDF placements require x and y coordinates")
     x = placement.x
     y = placement.y
     if placement.anchor == "bottom-left":
@@ -222,14 +319,22 @@ def placement_rect(
 
 
 def validate_with_pdf_metadata(config_path: Path) -> SignatureConfig:
-    fitz = load_fitz()
     config = parse_config(config_path)
+    if not any(document.kind == "pdf" for document in config.documents.values()):
+        return config
+    fitz = load_fitz()
     opened: dict[str, Any] = {}
     try:
         for doc_id, document in config.documents.items():
-            opened[doc_id] = fitz.open(str(document.path))
+            if document.kind == "pdf":
+                opened[doc_id] = fitz.open(str(document.path))
         for index, placement in enumerate(config.placements):
+            document = config.documents[placement.document]
+            if document.kind != "pdf":
+                continue
             doc = opened[placement.document]
+            if placement.page is None:
+                raise ConfigError(f"placements[{index}]: page is required for PDFs")
             if placement.page > doc.page_count:
                 raise ConfigError(
                     f"placements[{index}]: page {placement.page} exceeds "
@@ -268,11 +373,14 @@ def command_init_config(args: argparse.Namespace) -> int:
     documents = []
     for index, pdf in enumerate(pdfs, start=1):
         stem = pdf.stem or f"document-{index}"
+        suffix = pdf.suffix.lower()
+        doc_type = "docx" if suffix == ".docx" else "pdf"
         documents.append(
             {
                 "id": stem if len(pdfs) == 1 else f"{stem}-{index}",
+                "type": doc_type,
                 "path": portable(pdf),
-                "output": f"signed/{pdf.stem or f'document-{index}'}-signed.pdf",
+                "output": f"signed/{pdf.stem or f'document-{index}'}-signed{pdf.suffix.lower() or '.pdf'}",
             }
         )
     sig_items = []
@@ -285,43 +393,199 @@ def command_init_config(args: argparse.Namespace) -> int:
             }
         )
 
+    if documents[0]["type"] == "docx":
+        placement = {
+            "document": documents[0]["id"],
+            "signature": sig_items[0]["id"],
+            "mode": "placeholder",
+            "placeholder": "[[signature]]",
+            "width": 144,
+            "label": "replace placeholder with signature image",
+        }
+    else:
+        placement = {
+            "document": documents[0]["id"],
+            "signature": sig_items[0]["id"],
+            "page": 1,
+            "anchor": "bottom-left",
+            "x": 72,
+            "y": 72,
+            "width": 144,
+            "label": "replace with interviewed placement",
+        }
+
     config = {
         "version": 1,
+        "customization_instructions": args.instruction or [],
         "documents": documents,
         "signatures": sig_items,
-        "placements": [
-            {
-                "document": documents[0]["id"],
-                "signature": sig_items[0]["id"],
-                "page": 1,
-                "anchor": "bottom-left",
-                "x": 72,
-                "y": 72,
-                "width": 144,
-                "label": "replace with interviewed placement",
-            }
-        ],
+        "placements": [placement],
     }
     output_path.parent.mkdir(parents=True, exist_ok=True)
     output_path.write_text(json.dumps(config, indent=2) + "\n", encoding="utf-8")
     print(f"Wrote {output_path}")
+    if args.bundle_signatures:
+        bundle_args = argparse.Namespace(
+            config=str(output_path),
+            asset_dir=None,
+            instruction=[],
+            signature_instruction=[],
+        )
+        command_bundle_signatures(bundle_args)
+    return 0
+
+
+def parse_signature_instructions(values: list[str]) -> dict[str, list[str]]:
+    result: dict[str, list[str]] = {}
+    for value in values:
+        if "=" not in value:
+            raise ConfigError(
+                "signature instructions must use <signature-id>=<instruction>"
+            )
+        sig_id, instruction = value.split("=", 1)
+        sig_id = sig_id.strip()
+        instruction = instruction.strip()
+        if not sig_id or not instruction:
+            raise ConfigError(
+                "signature instructions must use <signature-id>=<instruction>"
+            )
+        result.setdefault(sig_id, []).append(instruction)
+    return result
+
+
+def command_bundle_signatures(args: argparse.Namespace) -> int:
+    config_path = Path(args.config).expanduser().resolve()
+    data = read_json(config_path)
+    signatures_raw = data.get("signatures")
+    if not isinstance(signatures_raw, list) or not signatures_raw:
+        raise ConfigError("signatures must be a non-empty array")
+
+    if args.asset_dir:
+        asset_dir = resolve_path(config_path, args.asset_dir)
+    else:
+        asset_dir = config_path.with_name(f"{config_path.stem}-assets") / "signatures"
+    asset_dir.mkdir(parents=True, exist_ok=True)
+
+    if args.instruction:
+        existing = data.setdefault("customization_instructions", [])
+        validate_string_list(existing, "customization_instructions")
+        existing.extend(args.instruction)
+
+    per_signature = parse_signature_instructions(args.signature_instruction or [])
+    seen: set[str] = set()
+    for index, item in enumerate(signatures_raw):
+        context = f"signatures[{index}]"
+        if not isinstance(item, dict):
+            raise ConfigError(f"{context}: must be an object")
+        sig_id = require_string(item, "id", context)
+        seen.add(sig_id)
+        source = resolve_path(config_path, require_string(item, "path", context))
+        if not source.exists():
+            raise ConfigError(f"{context}: signature image not found: {source}")
+        target = asset_dir / f"{safe_asset_name(sig_id)}{source.suffix.lower()}"
+        if source.resolve() != target.resolve():
+            shutil.copy2(source, target)
+        item["path"] = portable_path(config_path, target)
+        if sig_id in per_signature:
+            existing = item.setdefault("customization_instructions", [])
+            validate_string_list(existing, f"{context}.customization_instructions")
+            existing.extend(per_signature[sig_id])
+
+    unknown = sorted(set(per_signature) - seen)
+    if unknown:
+        raise ConfigError(f"unknown signature id(s): {', '.join(unknown)}")
+
+    config_path.write_text(json.dumps(data, indent=2) + "\n", encoding="utf-8")
+    print(f"Bundled {len(signatures_raw)} signature image(s) into {asset_dir}")
+    print(f"Updated {config_path}")
     return 0
 
 
 def command_validate(args: argparse.Namespace) -> int:
     config = validate_with_pdf_metadata(Path(args.config))
+    docx_count = sum(1 for document in config.documents.values() if document.kind == "docx")
     print(
         f"Config valid: {len(config.documents)} document(s), "
         f"{len(config.signatures)} signature image(s), "
         f"{len(config.placements)} placement(s)"
     )
+    if docx_count:
+        print(f"Includes {docx_count} Word document(s); run apply for anchor checks.")
     return 0
 
 
+def iter_docx_paragraphs(container: Any):
+    for paragraph in container.paragraphs:
+        yield paragraph
+    for table in container.tables:
+        for row in table.rows:
+            for cell in row.cells:
+                yield from iter_docx_paragraphs(cell)
+
+
+def clear_paragraph(paragraph: Any) -> None:
+    if not paragraph.runs:
+        paragraph.add_run("")
+    first = True
+    for run in paragraph.runs:
+        if first:
+            run.text = ""
+            first = False
+        else:
+            run.text = ""
+
+
+def insert_paragraph_after(paragraph: Any) -> Any:
+    from docx.text.paragraph import Paragraph  # type: ignore
+    from docx.oxml import OxmlElement  # type: ignore
+
+    new_p = OxmlElement("w:p")
+    paragraph._p.addnext(new_p)
+    return Paragraph(new_p, paragraph._parent)
+
+
+def add_docx_picture(paragraph: Any, image_path: Path, width_points: float) -> None:
+    _, Inches = load_docx()
+    paragraph.add_run().add_picture(str(image_path), width=Inches(width_points / 72.0))
+
+
+def apply_docx_placement(document: Any, placement: PlacementSpec, signature: SignatureSpec) -> None:
+    mode = placement.mode or "append"
+    if mode == "append":
+        paragraph = document.add_paragraph()
+        add_docx_picture(paragraph, signature.path, placement.width)
+        return
+
+    if mode == "placeholder":
+        placeholder = placement.placeholder or ""
+        for paragraph in iter_docx_paragraphs(document):
+            text = paragraph.text
+            if placeholder in text:
+                before, after = text.split(placeholder, 1)
+                clear_paragraph(paragraph)
+                paragraph.runs[0].text = before
+                add_docx_picture(paragraph, signature.path, placement.width)
+                if after:
+                    paragraph.add_run(after)
+                return
+        raise ConfigError(f"placeholder not found in DOCX: {placeholder!r}")
+
+    if mode == "after-paragraph":
+        target = placement.paragraph or ""
+        for paragraph in iter_docx_paragraphs(document):
+            if target in paragraph.text:
+                new_paragraph = insert_paragraph_after(paragraph)
+                add_docx_picture(new_paragraph, signature.path, placement.width)
+                return
+        raise ConfigError(f"paragraph text not found in DOCX: {target!r}")
+
+    raise ConfigError(f"unsupported DOCX placement mode: {mode}")
+
+
 def command_apply(args: argparse.Namespace) -> int:
-    fitz = load_fitz()
     config_path = Path(args.config).expanduser().resolve()
     config = validate_with_pdf_metadata(config_path)
+    fitz = load_fitz() if any(document.kind == "pdf" for document in config.documents.values()) else None
     placements_by_doc: dict[str, list[PlacementSpec]] = {}
     for placement in config.placements:
         placements_by_doc.setdefault(placement.document, []).append(placement)
@@ -330,25 +594,40 @@ def command_apply(args: argparse.Namespace) -> int:
         document = config.documents[doc_id]
         output = document.output
         output.parent.mkdir(parents=True, exist_ok=True)
-        pdf = fitz.open(str(document.path))
-        try:
+        if document.kind == "pdf":
+            if fitz is None:
+                raise ConfigError("PyMuPDF is required for PDF documents")
+            pdf = fitz.open(str(document.path))
+            try:
+                for placement in placements:
+                    if placement.page is None:
+                        raise ConfigError("PDF placements require a page")
+                    page = pdf[placement.page - 1]
+                    signature = config.signatures[placement.signature]
+                    image_w, image_h = image_size(fitz, signature.path)
+                    rect = placement_rect(
+                        fitz, page.rect.height, image_w, image_h, placement
+                    )
+                    page.insert_image(
+                        rect,
+                        filename=str(signature.path),
+                        overlay=True,
+                        rotate=placement.rotation,
+                    )
+                pdf.save(str(output), garbage=4, deflate=True)
+                print(f"Wrote {output}")
+            finally:
+                pdf.close()
+        elif document.kind == "docx":
+            docx, _ = load_docx()
+            word = docx.Document(str(document.path))
             for placement in placements:
-                page = pdf[placement.page - 1]
                 signature = config.signatures[placement.signature]
-                image_w, image_h = image_size(fitz, signature.path)
-                rect = placement_rect(
-                    fitz, page.rect.height, image_w, image_h, placement
-                )
-                page.insert_image(
-                    rect,
-                    filename=str(signature.path),
-                    overlay=True,
-                    rotate=placement.rotation,
-                )
-            pdf.save(str(output), garbage=4, deflate=True)
+                apply_docx_placement(word, placement, signature)
+            word.save(str(output))
             print(f"Wrote {output}")
-        finally:
-            pdf.close()
+        else:
+            raise ConfigError(f"unsupported document type: {document.kind}")
     return 0
 
 
@@ -362,7 +641,16 @@ def build_parser() -> argparse.ArgumentParser:
     init_config.add_argument("--pdf", action="append", required=True)
     init_config.add_argument("--signature", action="append", required=True)
     init_config.add_argument("--output", required=True)
+    init_config.add_argument("--instruction", action="append")
+    init_config.add_argument("--bundle-signatures", action="store_true")
     init_config.set_defaults(func=command_init_config)
+
+    bundle = subparsers.add_parser("bundle-signatures")
+    bundle.add_argument("--config", required=True)
+    bundle.add_argument("--asset-dir")
+    bundle.add_argument("--instruction", action="append")
+    bundle.add_argument("--signature-instruction", action="append")
+    bundle.set_defaults(func=command_bundle_signatures)
 
     validate = subparsers.add_parser("validate")
     validate.add_argument("--config", required=True)

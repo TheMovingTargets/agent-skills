@@ -81,6 +81,7 @@ Use JSON so configs remain portable across harnesses and languages.
 - `placements[].mode`: DOCX-only insertion mode. Use `placeholder`, `after-paragraph`, or `append`.
 - `placements[].placeholder`: DOCX-only text token to replace with the inline signature image when `mode` is `placeholder`.
 - `placements[].paragraph`: DOCX-only paragraph text fragment after which to insert the signature image when `mode` is `after-paragraph`.
+- `placements[].alignment`: DOCX-only image paragraph alignment. Use `left`, `center`, or `right`; omitted placements preserve the Word default.
 
 ## Coordinate Notes
 

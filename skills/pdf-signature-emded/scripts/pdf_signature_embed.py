@@ -121,6 +121,7 @@ class PlacementSpec:
     mode: str | None
     placeholder: str | None
     paragraph: str | None
+    alignment: str | None
 
 
 @dataclass(frozen=True)
@@ -237,6 +238,7 @@ def parse_config(config_path: Path, check_files: bool = True) -> SignatureConfig
         mode = item.get("mode")
         placeholder = item.get("placeholder")
         paragraph = item.get("paragraph")
+        alignment = item.get("alignment")
         if doc_kind == "docx":
             if mode is None:
                 if isinstance(placeholder, str):
@@ -253,6 +255,10 @@ def parse_config(config_path: Path, check_files: bool = True) -> SignatureConfig
                 raise ConfigError(f"{context}: placeholder must be a string")
             if mode == "after-paragraph" and not isinstance(paragraph, str):
                 raise ConfigError(f"{context}: paragraph must be a string")
+            if alignment is not None and alignment not in {"left", "center", "right"}:
+                raise ConfigError(
+                    f"{context}: alignment must be left, center, or right"
+                )
         else:
             if mode is not None:
                 raise ConfigError(f"{context}: mode is only supported for docx")
@@ -260,6 +266,8 @@ def parse_config(config_path: Path, check_files: bool = True) -> SignatureConfig
                 raise ConfigError(
                     f"{context}: placeholder and paragraph are only supported for docx"
                 )
+            if alignment is not None:
+                raise ConfigError(f"{context}: alignment is only supported for docx")
         placements.append(
             PlacementSpec(
                 document=document,
@@ -275,6 +283,7 @@ def parse_config(config_path: Path, check_files: bool = True) -> SignatureConfig
                 mode=str(mode) if mode is not None else None,
                 placeholder=placeholder,
                 paragraph=paragraph,
+                alignment=str(alignment) if alignment is not None else None,
             )
         )
 
@@ -544,8 +553,26 @@ def insert_paragraph_after(paragraph: Any) -> Any:
     return Paragraph(new_p, paragraph._parent)
 
 
-def add_docx_picture(paragraph: Any, image_path: Path, width_points: float) -> None:
+def set_docx_alignment(paragraph: Any, alignment: str | None) -> None:
+    if alignment is None:
+        return
+    from docx.enum.text import WD_ALIGN_PARAGRAPH  # type: ignore
+
+    paragraph.alignment = {
+        "left": WD_ALIGN_PARAGRAPH.LEFT,
+        "center": WD_ALIGN_PARAGRAPH.CENTER,
+        "right": WD_ALIGN_PARAGRAPH.RIGHT,
+    }[alignment]
+
+
+def add_docx_picture(
+    paragraph: Any,
+    image_path: Path,
+    width_points: float,
+    alignment: str | None = None,
+) -> None:
     _, Inches = load_docx()
+    set_docx_alignment(paragraph, alignment)
     paragraph.add_run().add_picture(str(image_path), width=Inches(width_points / 72.0))
 
 
@@ -553,7 +580,7 @@ def apply_docx_placement(document: Any, placement: PlacementSpec, signature: Sig
     mode = placement.mode or "append"
     if mode == "append":
         paragraph = document.add_paragraph()
-        add_docx_picture(paragraph, signature.path, placement.width)
+        add_docx_picture(paragraph, signature.path, placement.width, placement.alignment)
         return
 
     if mode == "placeholder":
@@ -563,6 +590,7 @@ def apply_docx_placement(document: Any, placement: PlacementSpec, signature: Sig
             if placeholder in text:
                 before, after = text.split(placeholder, 1)
                 clear_paragraph(paragraph)
+                set_docx_alignment(paragraph, placement.alignment)
                 paragraph.runs[0].text = before
                 add_docx_picture(paragraph, signature.path, placement.width)
                 if after:
@@ -575,7 +603,12 @@ def apply_docx_placement(document: Any, placement: PlacementSpec, signature: Sig
         for paragraph in iter_docx_paragraphs(document):
             if target in paragraph.text:
                 new_paragraph = insert_paragraph_after(paragraph)
-                add_docx_picture(new_paragraph, signature.path, placement.width)
+                add_docx_picture(
+                    new_paragraph,
+                    signature.path,
+                    placement.width,
+                    placement.alignment,
+                )
                 return
         raise ConfigError(f"paragraph text not found in DOCX: {target!r}")
 

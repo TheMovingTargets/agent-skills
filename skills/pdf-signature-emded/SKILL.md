@@ -54,7 +54,7 @@ Read `references/config-format.md` when creating or editing config files manuall
    - target page, using 1-based page numbers for PDFs;
    - signature image;
    - for PDFs: anchor point, `x` and `y` coordinates in PDF points from the bottom-left page corner, and width/height;
-   - for DOCX: insertion `mode` (`placeholder`, `after-paragraph`, or `append`), matching text if needed, and image width in points.
+   - for DOCX: insertion `mode` (`placeholder`, `after-paragraph`, or `append`), matching text if needed, image width in points, and optional paragraph `alignment` (`left`, `center`, or `right`).
 3. If the user is unsure where to place the signature, render or inspect the target page with an available PDF tool and ask one focused question at a time. Prefer concrete choices such as "page 4, below the printed name line" and translate them into coordinates.
 4. Generate a JSON config with `init-config`, then edit the `placements` array to match the interview.
 5. If the user wants future replay, run `bundle-signatures` so the config carries local copies of signature files and any customization instructions next to the config.

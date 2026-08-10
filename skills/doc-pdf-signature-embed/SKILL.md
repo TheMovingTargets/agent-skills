@@ -1,9 +1,9 @@
 ---
-name: pdf-signature-emded
+name: doc-pdf-signature-embed
 description: Embed one or more handwritten signature image files into PDF or Word `.docx` documents, either by interviewing the user to create a reusable placement configuration or by replaying a previously saved readable JSON config in batch mode. Use when a user provides PDF or Word files and signature image files and asks to sign, stamp, place, attach, embed, or batch-apply signatures to documents.
 ---
 
-# PDF Signature Emded
+# DOC/PDF Signature Embed
 
 Place signature images in PDF pages or Word documents with a reusable JSON configuration.
 

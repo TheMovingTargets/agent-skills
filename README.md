@@ -50,20 +50,20 @@ npx skills@latest add TheMovingTargets/agent-skills \
   --skill tmt-field-debug
 ```
 
-### PDF Signature Emded
+### DOC/PDF Signature Embed
 
-Visible PDF and Word signature image placement with reusable JSON placement configs. PDF Signature Emded:
+Visible PDF and Word signature image placement with reusable JSON placement configs. DOC/PDF Signature Embed:
 
 - Interviews users to translate signature placement intent into deterministic PDF coordinates or DOCX text anchors.
 - Saves portable JSON configs for repeatable batch signing.
 - Applies one or more signature images to one or more PDFs or Word documents while preserving original inputs.
 - Uses structural validation before writing signed document copies.
 
-Install only PDF Signature Emded:
+Install only DOC/PDF Signature Embed:
 
 ```bash
 npx skills@latest add TheMovingTargets/agent-skills \
-  --skill pdf-signature-emded
+  --skill doc-pdf-signature-embed
 ```
 
 ### TMT Smart Merge
@@ -226,7 +226,7 @@ skills/
     schemas/
     scripts/
     tests/
-  pdf-signature-emded/
+  doc-pdf-signature-embed/
     SKILL.md
     references/
     scripts/

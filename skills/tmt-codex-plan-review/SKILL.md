@@ -9,7 +9,7 @@ A cross-model check: Codex is valuable precisely because it shares none of the r
 
 ## Invariants
 
-- **Recursion guard.** If the incoming prompt already contains a review packet (it opens with `# Adversarial plan review`), you are the reviewer, not the dispatcher: perform the review directly against the repository and skip every step below. This skill is installed in cross-harness skill directories, so the Codex-side executor will discover it too — it must never re-dispatch to Codex from inside Codex.
+- **Recursion guard.** If the incoming prompt already contains a review packet (it opens with `# Adversarial plan review` or `# Adversarial code review`), you are the reviewer, not the dispatcher: perform the review directly against the repository and skip every step below. This skill is installed in cross-harness skill directories, so the Codex-side executor will discover it too — it must never re-dispatch to Codex from inside Codex.
 - Codex runs read-only. The review must never modify the repository or external systems.
 - The packet is self-contained: Codex sees only what the packet holds plus the repository it is pointed at. Anything left out of the packet is invisible to the review.
 - Relay Codex's findings faithfully before judging them. Never blend, soften, or reorder them into your own assessment first.
@@ -17,7 +17,7 @@ A cross-model check: Codex is valuable precisely because it shares none of the r
 
 ## 1. Preflight
 
-Confirm the Codex CLI is present and runnable: `codex --version`, then a trivial probe such as `codex exec --sandbox read-only "Reply with the single word: ready"`.
+From the repository root, confirm the Codex CLI is present and runnable: `codex --version`, then a trivial probe such as `codex exec --sandbox read-only -C <repository-root> "Reply with the single word: ready"`.
 
 On failure, stop and report the exact error with remediation — a stale CLI rejecting its configured model (HTTP 400 `invalid_request_error` naming the model) means upgrade the CLI (`npm install -g @openai/codex@latest`) or repoint the model in `~/.codex/config.toml`; an auth error means `codex login`.
 
@@ -37,13 +37,13 @@ The packet is complete when all five sections are present and the plan text is v
 
 ## 3. Run the review
 
-From the repository root:
+From the repository root, feed the packet on stdin — a packet passed as one shell argument can exceed the OS argument limit:
 
 ```bash
-codex exec --sandbox read-only -C <repository-root> "$(cat <packet-path>)"
+codex exec --sandbox read-only -C <repository-root> -o <output-path> - < <packet-path>
 ```
 
-Capture the full output (`--output-last-message <file>` on CLIs that support it). If the harness provides a dedicated Codex delegate agent, it may carry this step instead — the packet and output contract are unchanged.
+`-o` (`--output-last-message`) captures Codex's final message in full. If the harness provides a dedicated Codex delegate agent, it may carry this step instead — the packet and output contract are unchanged.
 
 The run is complete when Codex has returned findings and a verdict, not merely exited.
 

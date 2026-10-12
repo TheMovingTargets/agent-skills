@@ -1,14 +1,18 @@
 #!/usr/bin/env python3
-"""Emit a diagram for chat: a native Mermaid fence, or a rendered image URL.
+"""Emit a diagram for chat: a native Mermaid fence, an inline widget, or a rendered image URL.
 
 Render modes (``--render-mode``):
 
 - ``fence``  : print a plain ```mermaid fenced block. Zero dependencies, no network.
+- ``widget`` : print an HTML fragment for a host's inline visual tool (for example the Claude
+               desktop app's ``show_widget``). The host renders Mermaid client-side; the diagram
+               source never leaves the machine, only the pinned Mermaid library is fetched.
 - ``local``  : render a PNG through a self-hosted Kroki and serve it from a loopback cache.
 - ``public`` : render through a public service (kroki.io). Requires an explicit opt-in because
                it sends the diagram source to a third party.
-- ``auto``   : (default) network-free. Use a fence unless a local renderer is explicitly
-               configured, in which case use ``local``. Never silently reaches the network.
+- ``auto``   : (default) network-free. Use ``widget`` inside the Claude desktop app, else a
+               fence unless a local renderer is explicitly configured, in which case use
+               ``local``. Never silently sends diagram source to the network.
 """
 
 from __future__ import annotations
@@ -16,6 +20,7 @@ from __future__ import annotations
 import argparse
 import base64
 import hashlib
+import html
 import json
 import os
 import re
@@ -35,6 +40,9 @@ ASSET_PORT = int(os.environ.get("COGNITIVE_RELOAD_ASSET_PORT", "8991"))
 # custom --endpoint can never, by itself, imply consent to send source to a public service.
 ENV_MODE = os.environ.get("COGNITIVE_RELOAD_RENDER_MODE", "").strip().lower()
 PUBLIC_KROKI_URL = "https://kroki.io"
+EXPLICIT_MODES = {"fence", "widget", "public", "local"}
+# Pinned so a widget renders identically across sessions; esm.sh is on the widget CSP allowlist.
+MERMAID_ESM = "https://esm.sh/mermaid@11.4.1/dist/mermaid.esm.min.mjs"
 
 MERMAID_INIT = (
     '%%{init: {"theme":"base","themeVariables":{'
@@ -87,12 +95,20 @@ def local_configured(data: dict) -> bool:
     return data.get("diagram_mode") == "kroki_image"
 
 
+def inline_widget_host() -> bool:
+    """Does the host render HTML widgets inline? The Claude desktop app does; it shows raw fences."""
+    return os.environ.get("CLAUDE_CODE_ENTRYPOINT", "").strip().lower() == "claude-desktop"
+
+
 def resolve_mode(cli_mode: str | None) -> str:
     if cli_mode and cli_mode != "auto":
         return cli_mode
-    if ENV_MODE in {"fence", "public", "local"}:
+    if ENV_MODE in EXPLICIT_MODES:
         return ENV_MODE
-    # auto: stay network-free. Reach `local` only when a renderer is explicitly configured.
+    # auto: never send diagram source to the network.
+    if inline_widget_host():
+        return "widget"
+    # Reach `local` only when a renderer is explicitly configured.
     if local_configured(config_data()):
         return "local"
     return "fence"
@@ -162,6 +178,53 @@ def fence_block(diagram_type: str, source: str) -> str:
             "use --render-mode local or public for other diagram types"
         )
     return f"```mermaid\n{source.strip()}\n```"
+
+
+def widget_block(diagram_type: str, source: str, alt: str | None) -> str:
+    """An HTML fragment that renders Mermaid client-side and follows the host's light/dark mode."""
+    if diagram_type != "mermaid":
+        raise RuntimeError(
+            f"widget render mode only supports Mermaid diagrams, not {diagram_type!r}"
+        )
+    summary = html.escape(alt or "Diagram")
+    # json.dumps yields a safe JS string literal; escaping "</" keeps the source from closing the
+    # surrounding <script> element.
+    literal = json.dumps(source.strip()).replace("</", "<\\/")
+    return f"""<h2 class="sr-only">{summary}</h2>
+<div id="cr-diagram" style="display:flex;justify-content:center;padding:0.5rem 0"></div>
+<script type="module">
+import mermaid from '{MERMAID_ESM}';
+const mode = document.documentElement.dataset.mode;
+const dark = mode ? mode === 'dark' : matchMedia('(prefers-color-scheme: dark)').matches;
+await document.fonts.ready;
+mermaid.initialize({{
+  startOnLoad: false,
+  theme: 'base',
+  fontFamily: '"anthropic-sans", sans-serif',
+  flowchart: {{ useMaxWidth: true }},
+  themeVariables: {{
+    darkMode: dark,
+    fontSize: '14px',
+    fontFamily: '"anthropic-sans", sans-serif',
+    primaryColor: dark ? '#26215C' : '#EEEDFE',
+    primaryBorderColor: dark ? '#AFA9EC' : '#534AB7',
+    primaryTextColor: dark ? '#EEEDFE' : '#26215C',
+    lineColor: dark ? '#9c9a92' : '#73726c',
+    textColor: dark ? '#c2c0b6' : '#3d3d3a',
+    edgeLabelBackground: 'transparent',
+  }},
+}});
+const target = document.getElementById('cr-diagram');
+try {{
+  const {{ svg }} = await mermaid.render('cr-diagram-svg', {literal});
+  target.innerHTML = svg;
+}} catch (error) {{
+  const pre = document.createElement('pre');
+  pre.style.cssText = 'font-family:var(--font-mono);font-size:12px;color:var(--text-secondary);white-space:pre-wrap';
+  pre.textContent = {literal};
+  target.replaceChildren(pre);
+}}
+</script>"""
 
 
 def diagram_url(endpoint: str, diagram_type: str, output_format: str, source: str) -> str:
@@ -287,12 +350,18 @@ def main() -> int:
     parser.add_argument("--format", choices=["png", "svg"], default="png")
     parser.add_argument(
         "--render-mode",
-        choices=["fence", "public", "local", "auto"],
+        choices=["fence", "widget", "public", "local", "auto"],
         default=None,
-        help="fence (default, zero-dep), local (self-hosted Kroki), public (kroki.io, opt-in), auto",
+        help=(
+            "auto (default), fence (zero-dep), widget (inline HTML for a host visual tool), "
+            "local (self-hosted Kroki), public (kroki.io, opt-in)"
+        ),
     )
     parser.add_argument("--endpoint", help="override the renderer endpoint (does not imply public egress)")
-    parser.add_argument("--alt", help="emit Markdown image syntax using this alt text (image modes)")
+    parser.add_argument(
+        "--alt",
+        help="alt text: Markdown image syntax in image modes, screen-reader summary in widget mode",
+    )
     parser.add_argument("--check", action="store_true", help="verify the rendered URL (image modes)")
     parser.add_argument(
         "--direct-kroki-url",
@@ -302,11 +371,7 @@ def main() -> int:
     args = parser.parse_args()
 
     # An explicitly selected image mode must fail loudly instead of silently degrading to a fence.
-    forced = bool(args.render_mode and args.render_mode != "auto") or ENV_MODE in {
-        "fence",
-        "public",
-        "local",
-    }
+    forced = bool(args.render_mode and args.render_mode != "auto") or ENV_MODE in EXPLICIT_MODES
 
     try:
         if args.source and args.source != "-":
@@ -322,6 +387,9 @@ def main() -> int:
 
         if mode == "fence":
             print(fence_block(args.type, guarded))
+            return 0
+        if mode == "widget":
+            print(widget_block(args.type, guarded, args.alt))
             return 0
 
         try:

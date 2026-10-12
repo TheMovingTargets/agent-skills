@@ -12,7 +12,7 @@ usage() {
   printf '%s\n' "  --native      also write the harness-specific dirs (.codex/skills, .opencode/skills, .pi/skills)"
   printf '%s\n' "                for users who disabled the shared .agents path"
   printf '%s\n' "  --with-kroki  start the optional local (private) PNG renderer; NOT required for diagrams,"
-  printf '%s\n' "                which default to a native Mermaid fence"
+  printf '%s\n' "                which default to a native Mermaid fence (an inline widget in the Claude desktop app)"
   printf '%s\n' "  --uninstall   remove the skill from the same target/--native paths instead of installing;"
   printf '%s\n' "                repos then fall back to any user-level install (~/.claude, ~/.agents)."
   printf '%s\n' "                Leaves ~/.config/cognitive-reload and any running renderer untouched"

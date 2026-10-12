@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.8.2 - 2026-10-12
+
+- Add a `widget` render mode that emits an HTML fragment for a host's inline visual tool, so Mermaid diagrams render inline in the Claude desktop app instead of appearing as raw fences.
+- Have `auto` select `widget` when `CLAUDE_CODE_ENTRYPOINT=claude-desktop`; an explicit `COGNITIVE_RELOAD_RENDER_MODE` still wins.
+- Render client-side from a pinned `esm.sh` Mermaid build with host light/dark theming and a raw-source fallback; diagram source never leaves the machine.
+
 ## 0.8.1 - 2026-07-27
 
 - Add an explicit main-path reload cursor with a concrete next teaching action.

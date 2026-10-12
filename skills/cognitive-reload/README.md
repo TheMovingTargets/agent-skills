@@ -75,8 +75,11 @@ teach-back.
 ## Diagrams
 
 Diagrams render with **no setup** by default. The bundled `scripts/kroki_url.py` helper emits a
-native ```mermaid fence, which renders in GitHub, IDEs, and most agent UIs. Two optional image tiers
-exist for clients that cannot render Mermaid:
+native ```mermaid fence, which renders in GitHub, IDEs, and most agent UIs. In the Claude desktop
+app, which shows fences as raw text, `auto` instead emits an HTML fragment for the app's inline
+visual tool (`show_widget`). Mermaid then renders client-side, and the diagram source stays on the
+machine. Force either behavior with `--render-mode fence|widget` or `COGNITIVE_RELOAD_RENDER_MODE`.
+Two optional image tiers exist for clients that cannot render Mermaid:
 
 - **Local (private):** a self-hosted Kroki renders PNGs served from a loopback cache. Best for
   private repositories. See below.
@@ -84,7 +87,7 @@ exist for clients that cannot render Mermaid:
   diagram source to a third party, so it is **never** used automatically — enable it only for
   non-sensitive repositories.
 
-`auto` (the default) stays network-free: it uses a fence unless a local renderer is configured.
+`auto` (the default) never sends diagram source to the network: it uses a widget in the desktop app, else a fence unless a local renderer is configured.
 
 ### Optional local renderer (private)
 

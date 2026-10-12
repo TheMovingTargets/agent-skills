@@ -66,7 +66,7 @@ With a local or opt-in public renderer it returns a Markdown image. Never hand-b
 - One conceptual diagram per turn is the maximum.
 - After `continue`, descend one rung only; do not respond with multiple diagrams or a complete subsystem survey.
 - For a journey longer than four stages, use a top-to-bottom diagram or teach it in two segments.
-- One code excerpt per turn is the default.
+- One code excerpt per turn is the default. Every excerpt is a faithful, contiguous range with no skipped lines (see `SKILL.md`, Faithful excerpts).
 - Keep the learner at the current zoom level while questions remain.
 - Offer navigation, not deadlines or estimated minutes.
 - Never announce an upcoming quiz during tutoring.

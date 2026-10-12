@@ -25,6 +25,8 @@ For each selected area, provide a walkthrough in small slices:
 
 Use line-numbered excerpts, not entire files.
 
+Every excerpt must follow the faithful-excerpt contract in `SKILL.md`. It is one verbatim, contiguous range with no skipped, elided, edited, or annotated lines. Choose a smaller range or split it into several labelled blocks instead of omitting lines from inside a block.
+
 Good excerpt:
 
 ```text
@@ -41,7 +43,7 @@ Then show the excerpt and explain:
 
 ## Excerpt size limits
 
-Prefer excerpts of 20-60 lines.
+Prefer excerpts of 20-60 lines. Meet the limit by choosing the range, never by removing lines from inside it.
 Never paste an entire large file unless the file is very small.
 If a file is large, use targeted commands such as:
 

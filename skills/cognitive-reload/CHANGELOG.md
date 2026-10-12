@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.8.3 - 2026-10-12
+
+- Add a faithful-excerpt contract: every code block is a verbatim, contiguous line range from the target ref, with no skipped, elided, edited, or annotated lines.
+- Require an exact path and range label on each block, and keep oversized ranges in bounds by narrowing or splitting them, never by eliding lines.
+
 ## 0.8.2 - 2026-10-12
 
 - Add a `widget` render mode that emits an HTML fragment for a host's inline visual tool, so Mermaid diagrams render inline in the Claude desktop app instead of appearing as raw fences.

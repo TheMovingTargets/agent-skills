@@ -113,6 +113,22 @@ npx skills@latest add TheMovingTargets/agent-skills \
   --skill tmt-codex-plan-review
 ```
 
+### TMT Codex Code Review
+
+Adversarial cross-model defect hunt on a code change — a branch, PR, or diff since a fixed point — via the Codex CLI. The code sibling of TMT Codex Plan Review, and a separate axis from standards/spec conformance review. TMT Codex Code Review:
+
+- Pins the change (fixed point, head SHA, diff command, commits) and gathers its intent: the originating spec verbatim, governing docs, and attack vectors.
+- Runs Codex read-only against the repository; Codex runs the diff itself and reads beyond it.
+- Relays findings verbatim (severity, `path:line` evidence, failure scenario, fix, verdict), then dispositions each one: fix, reject, or defer.
+- Fails loudly with remediation when Codex is unavailable — it never substitutes a same-model review.
+
+Install only TMT Codex Code Review:
+
+```bash
+npx skills@latest add TheMovingTargets/agent-skills \
+  --skill tmt-codex-code-review
+```
+
 ## Install Options
 
 Install into the current project or folder:

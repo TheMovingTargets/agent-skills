@@ -26,7 +26,7 @@ When the learner asks what this skill can do, briefly summarize its session mode
 ## Session modes
 
 - `first_time`: no trustworthy progress exists or the learner says they have not reviewed the code.
-- `resume`: progress exists for this GitHub user and repository.
+- `resume`: progress exists for this learner (GitHub or Azure DevOps user) and repository.
 - `change_reload`: learner has a baseline and wants changes since a commit/date/session.
 - `deep_dive`: learner selects a subsystem or question directly.
 - `publish_hitl`: learner asks to export local progress into repository-visible HITL cognition artifacts.
@@ -36,12 +36,12 @@ Treat "standard first time reload" as `first_time`, not as a recent-diff review.
 ## Startup protocol
 
 1. Resolve the target ref without modifying the checkout.
-2. Run the bundled `scripts/progress_store.py identity --repo .` to resolve GitHub login and repository identity.
+2. Run the bundled `scripts/progress_store.py identity --repo .` to resolve the learner (GitHub login, or Azure DevOps account for Azure DevOps remotes) and repository identity.
 3. Run the bundled `scripts/progress_store.py get --repo .` to load this learner's progress when available.
 4. Inspect repository-level evidence: README, architecture docs, manifests, top-level tree, service entry points, and representative tests. Use Git evidence from the target ref.
 5. Determine mode and say in one sentence whether this is a new or resumed learning path.
 
-Startup is complete when the target ref, session mode, progress availability, and enough evidence for a defensible system map are established. Do not narrate evidence collection. If GitHub identity cannot be resolved, explain briefly that progress will be session-only; never infer identity from commit authorship.
+Startup is complete when the target ref, session mode, progress availability, and enough evidence for a defensible system map are established. Do not narrate evidence collection. If the learner's identity cannot be resolved, explain briefly that progress will be session-only; never infer identity from commit authorship.
 
 ## Orientation
 

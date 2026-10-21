@@ -12,7 +12,7 @@ npx skills@latest add TheMovingTargets/agent-skills
 
 ### Cognitive Reload
 
-Guided, resumable codebase tutoring for agentic development. Cognitive Reload helps an agent rebuild a developer's mental model of a repository, teach architecture diagram-first, resume per GitHub user and repository, and publish sanitized HITL cognition artifacts.
+Guided, resumable codebase tutoring for agentic development. Cognitive Reload helps an agent rebuild a developer's mental model of a repository, teach architecture diagram-first, resume per GitHub or Azure DevOps user and repository, and publish sanitized HITL cognition artifacts.
 
 Use it for:
 

@@ -75,12 +75,12 @@ writes are blocked by the environment.
 Public mode:
 
 - include topic names, states, verified scores, code anchors, timestamps, and aggregate counts
-- exclude GitHub login
+- exclude the learner login (GitHub or Azure DevOps)
 - exclude raw teach-back answers
 - exclude raw learner questions
 - include unresolved question count, not raw unresolved question text
 
-Private mode may include GitHub login and raw learner questions. Use it only for
+Private mode may include the learner login and raw learner questions. Use it only for
 local/team repositories where that disclosure is intended.
 
 ## README Badge Block

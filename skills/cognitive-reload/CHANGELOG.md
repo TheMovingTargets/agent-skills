@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.9.0 - 2026-10-21
+
+- Identify learners in Azure DevOps repositories: `progress_store.py` recognizes `dev.azure.com`, `ssh.dev.azure.com`, `*.visualstudio.com` and proxied `<org>/<project>/_git/<repo>` remotes, and resolves the signed-in user from `_apis/connectionData` through `az login`, falling back to `AZURE_DEVOPS_EXT_PAT`.
+- Store Azure DevOps progress under `cognitive-reload/azure-devops/dev.azure.com/<org>/<project>/<repo>/<account>/`; GitHub paths and records are unchanged.
+- Record `identity_provider` and `learner_login` in progress; the schema accepts `learner_login` or `github_login`, and private exports include the learner login for either provider.
+
 ## 0.8.1 - 2026-07-27
 
 - Add an explicit main-path reload cursor with a concrete next teaching action.

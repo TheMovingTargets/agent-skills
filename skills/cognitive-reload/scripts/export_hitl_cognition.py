@@ -58,7 +58,7 @@ def read_progress(repo: Path, progress_path: Path | None) -> dict:
     script = Path(__file__).with_name("progress_store.py")
     output = run([sys.executable, str(script), "get", "--repo", str(repo)], repo)
     if output == "null":
-        raise RuntimeError("no local Cognitive Reload progress found for this GitHub user and repository")
+        raise RuntimeError("no local Cognitive Reload progress found for this learner and repository")
     return json.loads(output)
 
 
@@ -210,6 +210,8 @@ def build_summary(progress: dict, privacy: str) -> dict:
 
     if privacy == "private":
         summary["github_login"] = progress.get("github_login")
+        summary["learner_login"] = progress.get("learner_login") or progress.get("github_login")
+        summary["identity_provider"] = progress.get("identity_provider", "github")
         summary["learner_questions"] = progress.get("learner_questions") or []
         summary["unresolved_questions"] = progress.get("unresolved_questions") or []
 

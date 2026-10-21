@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.9.1 - 2026-10-21
+
+- Write PNG badges for Azure DevOps repositories, which do not display SVG images in Markdown: `--badge-format auto` (default) draws PNG badges with PyMuPDF when it is installed and points the README block and `current.md` at them, sized with Azure DevOps' `=WxH` syntax. SVG badges are always written; other hosts keep using them.
+- Badges are drawn directly rather than rasterised from the SVG, because MuPDF's SVG renderer drops the clip path, gradient and text centring.
+- PNG badges have rounded corners, a transparent background and a light text shadow, close to the SVG style (no gradient, Helvetica rather than Verdana).
+- The freshness badge shows the reload date instead of a relative age, which went stale ("today" stayed "today"). `--refresh` re-ages a published export from its `current.json`, with no local progress or identity needed: the freshness colour (green, then orange after 30 days, red after 90), the index and the level follow today's date, while `current.json` and history keep the reload's record. Files change only when a threshold is crossed, so a scheduled refresh adds few commits.
+- Badge images are written on one line, so they sit in a row in Azure DevOps, which turns each line break into a break, as well as on GitHub.
+
 ## 0.9.0 - 2026-10-21
 
 - Identify learners in Azure DevOps repositories: `progress_store.py` recognizes `dev.azure.com`, `ssh.dev.azure.com`, `*.visualstudio.com` and proxied `<org>/<project>/_git/<repo>` remotes, and resolves the signed-in user from `_apis/connectionData` through `az login`, falling back to `AZURE_DEVOPS_EXT_PAT`.

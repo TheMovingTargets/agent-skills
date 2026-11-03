@@ -10,12 +10,14 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 SKILLS = {
     "cognitive-reload": ROOT / "skills" / "cognitive-reload",
+    "cognitive-reload-with-trinity": ROOT / "skills" / "cognitive-reload-with-trinity",
     "doc-pdf-signature-embed": ROOT / "skills" / "doc-pdf-signature-embed",
     "tmt-agent-deploy": ROOT / "skills" / "tmt-agent-deploy",
     "tmt-codex-code-review": ROOT / "skills" / "tmt-codex-code-review",
     "tmt-codex-plan-review": ROOT / "skills" / "tmt-codex-plan-review",
     "tmt-field-debug": ROOT / "skills" / "tmt-field-debug",
     "tmt-smart-merge": ROOT / "skills" / "tmt-smart-merge",
+    "trinity-helicopter-program": ROOT / "skills" / "trinity-helicopter-program",
 }
 
 
@@ -84,6 +86,10 @@ def main() -> int:
         ROOT / "skills" / "tmt-field-debug" / "references" / "report-contract.md",
         ROOT / "skills" / "tmt-smart-merge" / "VERSION",
         ROOT / "skills" / "tmt-smart-merge" / "references" / "conflict-playbook.md",
+        ROOT / "skills" / "cognitive-reload-with-trinity" / "VERSION",
+        ROOT / "skills" / "trinity-helicopter-program" / "VERSION",
+        ROOT / "skills" / "trinity-helicopter-program" / "scripts" / "ledger.py",
+        ROOT / "skills" / "trinity-helicopter-program" / "references" / "languages" / "csharp-dotnet.md",
         ROOT / "scripts" / "test-tmt-agent-deploy.py",
     ]
     errors.extend(

@@ -1,0 +1,3 @@
+interface:
+  display_name: "Cognitive Reload with Trinity"
+  short_description: "Reload a codebase and learn its language on the same excerpts"

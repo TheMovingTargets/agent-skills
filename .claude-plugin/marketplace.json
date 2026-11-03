@@ -3,6 +3,7 @@
   "owner": {
     "name": "TheMovingTargets"
   },
+  "description": "TheMovingTargets' cross-agent skills, as an installable Claude Code and Codex plugin.",
   "plugins": [
     {
       "name": "tmt-agent-skills",

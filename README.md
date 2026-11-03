@@ -149,6 +149,35 @@ npx skills@latest add TheMovingTargets/agent-skills \
   --skill tmt-codex-code-review
 ```
 
+### Trinity Helicopter Program
+
+Side-by-side language fluency for experienced engineers. When an agent ports code into a language you don't know yet (for example TypeScript or Python MCP servers into C#/.NET), or you're reading a finished repository in that language, Trinity Helicopter Program teaches the target language through the real code, the moment it needs it. It:
+
+- Shows faithful source and target excerpts side by side, with a construct mapping table.
+- Triages each concept against what you already know: silence for known concepts, a one-line bridge from Rust/Java/C++/TypeScript/Python where a near analog exists, and a short card for genuinely new concepts and false friends.
+- Lets you `skip` a concept (never explained again) or go into the `weeds` one rung at a time (semantics, runtime machinery, edge cases, idiom), and `surface` back to exactly where you were.
+- Records port decisions ("record over class because…") and behaviour differences between source and port as teaching material.
+- Keeps a local concept ledger per learner and target language, shared across repositories, outside any working tree.
+- Offers optional fluency drills (`fly`) only on request.
+
+Ships with a C#/.NET language pack, including the C# MCP SDK; other target languages can be added as packs.
+
+Install only Trinity Helicopter Program:
+
+```bash
+npx skills@latest add TheMovingTargets/agent-skills \
+  --skill trinity-helicopter-program
+```
+
+### Cognitive Reload with Trinity
+
+Runs Cognitive Reload and Trinity Helicopter Program together on the same excerpts, for onboarding to or reloading a repository written in a language you're not yet fluent in. Cognitive Reload owns the route (orientation, system diagram, topic map, cursor, progress, assessment gate); Trinity adds the language layer at each code and test excerpt. Install all three:
+
+```bash
+npx skills@latest add TheMovingTargets/agent-skills \
+  --skill cognitive-reload --skill trinity-helicopter-program --skill cognitive-reload-with-trinity
+```
+
 ## Install Options
 
 Install into the current project or folder:
@@ -235,6 +264,18 @@ To resolve an interrupted integration without losing either branch's intent:
 Use tmt-smart-merge to inspect this conflicted rebase, interview me one decision at a time, resolve approved semantic clusters, and ask before staging or continuing.
 ```
 
+To learn a language alongside a port:
+
+```text
+Use trinity-helicopter-program. You're porting src/tools/*.ts to C#; teach me the C# side by side as you go. I know Rust, Java and TypeScript.
+```
+
+To reload a repository and learn its language at the same time:
+
+```text
+Cognitive reload with trinity on this repo. I know the Python original but have never written C#.
+```
+
 ## Privacy
 
 Cognitive Reload stores private learner progress locally by default, outside the target repository. Public HITL exports exclude GitHub login, raw learner questions, and raw assessment answers.
@@ -242,6 +283,8 @@ Cognitive Reload stores private learner progress locally by default, outside the
 The skill should not write repository files unless the user approves a publish or export step.
 
 TMT Agent Deploy stores repository-specific configuration, state, and sanitized run summaries under the gitignored `.tmt-agent-deploy/` directory. It prohibits secrets in that directory and stores only credential paths or references.
+
+Trinity Helicopter Program stores its concept ledger and port flight logs locally under `${XDG_DATA_HOME:-~/.local/share}/trinity-helicopter-program/`, outside any repository, and never publishes them.
 
 TMT Field Debug writes sanitized reports with evidence references rather than raw remote logs, credentials, or sensitive payloads.
 
@@ -274,6 +317,14 @@ skills/
     SKILL.md
     agents/
     references/
+  trinity-helicopter-program/
+    SKILL.md
+    agents/
+    references/languages/
+    scripts/
+  cognitive-reload-with-trinity/
+    SKILL.md
+    agents/
 .claude-plugin/
   plugin.json
 .codex-plugin/

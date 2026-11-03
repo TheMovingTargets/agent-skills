@@ -1,6 +1,6 @@
 {
   "name": "tmt-agent-skills",
-  "version": "0.8.0",
+  "version": "0.9.0",
   "description": "Cross-agent skills from TheMovingTargets.",
   "author": {
     "name": "TheMovingTargets"
@@ -9,11 +9,13 @@
   "license": "MIT",
   "skills": [
     "./skills/cognitive-reload",
+    "./skills/cognitive-reload-with-trinity",
     "./skills/doc-pdf-signature-embed",
     "./skills/tmt-agent-deploy",
     "./skills/tmt-codex-code-review",
     "./skills/tmt-codex-plan-review",
     "./skills/tmt-field-debug",
-    "./skills/tmt-smart-merge"
+    "./skills/tmt-smart-merge",
+    "./skills/trinity-helicopter-program"
   ]
 }

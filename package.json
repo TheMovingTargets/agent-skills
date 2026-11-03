@@ -1,6 +1,6 @@
 {
   "name": "tmt-agent-skills",
-  "version": "0.8.0",
+  "version": "0.9.0",
   "private": true,
   "description": "Cross-agent skills from TheMovingTargets in the open SKILL.md format.",
   "license": "MIT",

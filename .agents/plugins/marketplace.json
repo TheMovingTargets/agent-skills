@@ -1,8 +1,8 @@
 {
-  "name": "tmt-agent-skills",
+  "name": "tmt",
   "plugins": [
     {
-      "name": "cognitive-reload",
+      "name": "tmt-agent-skills",
       "source": {
         "source": "local",
         "path": "./"
@@ -13,8 +13,8 @@
       },
       "category": "Productivity",
       "interface": {
-        "displayName": "Cognitive Reload",
-        "description": "Guided, resumable codebase tutoring with HITL cognition tracking."
+        "displayName": "TMT Agent Skills",
+        "description": "Cross-agent skills from TheMovingTargets."
       }
     }
   ]

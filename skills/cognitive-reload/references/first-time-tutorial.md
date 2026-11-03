@@ -56,16 +56,17 @@ What would you like clarified about this map? Say `continue` when the big pictur
 ````
 
 Do not copy this example mechanically. Derive names and relationships from the repository.
-Always generate the diagram with the bundled `scripts/kroki_url.py` helper and paste its output
-exactly. By default it emits a native ```mermaid fence (shown above); with a local or opt-in public
-renderer it returns a Markdown image instead. Never hand-build a direct Kroki `/mermaid/png/...` URL.
+Always generate the diagram with the bundled `scripts/kroki_url.py` helper and deliver its output
+exactly. By default it emits a native ```mermaid fence (shown above). In the Claude desktop app it
+emits an HTML widget fragment instead: pass that to the inline visual tool rather than pasting it.
+With a local or opt-in public renderer it returns a Markdown image. Never hand-build a direct Kroki `/mermaid/png/...` URL.
 
 ## Pacing
 
 - One conceptual diagram per turn is the maximum.
 - After `continue`, descend one rung only; do not respond with multiple diagrams or a complete subsystem survey.
 - For a journey longer than four stages, use a top-to-bottom diagram or teach it in two segments.
-- One code excerpt per turn is the default.
+- One code excerpt per turn is the default. Every excerpt is a faithful, contiguous range with no skipped lines (see `SKILL.md`, Faithful excerpts).
 - Keep the learner at the current zoom level while questions remain.
 - Offer navigation, not deadlines or estimated minutes.
 - Never announce an upcoming quiz during tutoring.

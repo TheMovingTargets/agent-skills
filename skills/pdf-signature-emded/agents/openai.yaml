@@ -1,4 +1,0 @@
-interface:
-  display_name: "Document Signature Embed"
-  short_description: "Place signature images in PDFs and DOCX"
-  default_prompt: "Use $pdf-signature-emded to place my signature image into this PDF or Word document and save a reusable placement config."

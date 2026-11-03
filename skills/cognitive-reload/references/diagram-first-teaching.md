@@ -4,8 +4,8 @@ Use a diagram before code whenever relationships, branching, state, or boundarie
 
 ## Output policy
 
-Always generate diagrams with the bundled `scripts/kroki_url.py` helper and paste its output
-exactly. The helper has three render modes and chooses safely by default; you do not pick the
+Always generate diagrams with the bundled `scripts/kroki_url.py` helper and deliver its output
+exactly. The helper has four render modes and chooses safely by default; you do not pick the
 client's capabilities, you pick the mode.
 
 1. Locate the bundled `scripts/kroki_url.py`.
@@ -17,15 +17,27 @@ printf '%s\n' 'flowchart TD' '  A["Client"] --> B["API"]' '  B --> C["Store"]' \
   | python3 scripts/kroki_url.py --alt "System flow"
 ```
 
-4. Place the helper output on its own line in the chat response, exactly as printed. Follow it with a
-   compact prose or table summary so the explanation stays usable even if the client cannot render
-   the diagram.
+4. Deliver the output exactly as printed:
+   - If it starts with `<h2 class="sr-only">` (widget mode), pass it unchanged as the `widget_code`
+     of the host's inline visual tool (`show_widget` in the Claude desktop app) and do not paste it
+     into the chat text. Write the surrounding explanation in the chat response as usual.
+   - Otherwise place it on its own line in the chat response.
+
+   Follow it with a compact prose or table summary so the explanation stays usable even if the
+   client cannot render the diagram.
 
 ### Render modes
 
-- **`fence` (default via `auto`).** Emits a native ```mermaid block. Zero dependencies, no network,
-  and renders in GitHub, IDEs, and most agent UIs. This is the sanctioned default; a raw Mermaid
-  fence from the helper is correct output, not a fallback.
+- **`fence` (default via `auto` outside the desktop app).** Emits a native ```mermaid block. Zero
+  dependencies, no network, and renders in GitHub, IDEs, and most agent UIs. This is the sanctioned
+  default; a raw Mermaid fence from the helper is correct output, not a fallback.
+- **`widget` (default via `auto` in the Claude desktop app).** The desktop app's Code tab shows a
+  Mermaid fence as raw text, so `auto` emits an HTML fragment instead when
+  `CLAUDE_CODE_ENTRYPOINT=claude-desktop`. Pass it to the inline visual tool (`show_widget`; load its
+  `read_me` once first if the host requires it). Mermaid renders client-side from a pinned `esm.sh`
+  build and follows the host's light or dark mode. The diagram source never leaves the machine, so
+  this is safe for private repositories. If the session has no inline visual tool, rerun with
+  `--render-mode fence`. Use one widget per turn, like any other diagram.
 - **`local`.** Renders a PNG through a self-hosted Kroki and serves it from a loopback cache
   (`127.0.0.1:8991`). `auto` selects this automatically only when a local renderer is explicitly
   configured (the `--with-kroki` installer records `render_mode: local`). Use this for private repos.
@@ -36,6 +48,7 @@ printf '%s\n' 'flowchart TD' '  A["Client"] --> B["API"]' '  B --> C["Store"]' \
   also leak into shell history and logs.
 
 In `auto`, if a configured local renderer is unreachable the helper degrades to a fence on its own;
+an explicit `COGNITIVE_RELOAD_RENDER_MODE` overrides the desktop-app detection;
 a *layout-policy* rejection (too many nodes) is not degraded — simplify the diagram instead.
 
 ### Image-mode details (local and public)
@@ -82,7 +95,7 @@ fallback. Never send private repository diagrams to a public renderer.
 
 Treat chat width as a hard constraint:
 
-- Emit at most one image per turn.
+- Emit at most one image or widget per turn.
 - Use 4-6 nodes normally and never exceed 8 nodes in one flowchart.
 - Use `LR` or `RL` only for 2-4 nodes. Use `TD` for longer journeys.
 - Split a journey into two diagrams when a vertical version would still need more than 8 nodes.

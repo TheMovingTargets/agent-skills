@@ -14,6 +14,17 @@
 - Store Azure DevOps progress under `cognitive-reload/azure-devops/dev.azure.com/<org>/<project>/<repo>/<account>/`; GitHub paths and records are unchanged.
 - Record `identity_provider` and `learner_login` in progress; the schema accepts `learner_login` or `github_login`, and private exports include the learner login for either provider.
 
+## 0.8.3 - 2026-10-12
+
+- Add a faithful-excerpt contract: every code block is a verbatim, contiguous line range from the target ref, with no skipped, elided, edited, or annotated lines.
+- Require an exact path and range label on each block, and keep oversized ranges in bounds by narrowing or splitting them, never by eliding lines.
+
+## 0.8.2 - 2026-10-12
+
+- Add a `widget` render mode that emits an HTML fragment for a host's inline visual tool, so Mermaid diagrams render inline in the Claude desktop app instead of appearing as raw fences.
+- Have `auto` select `widget` when `CLAUDE_CODE_ENTRYPOINT=claude-desktop`; an explicit `COGNITIVE_RELOAD_RENDER_MODE` still wins.
+- Render client-side from a pinned `esm.sh` Mermaid build with host light/dark theming and a raw-source fallback; diagram source never leaves the machine.
+
 ## 0.8.1 - 2026-07-27
 
 - Add an explicit main-path reload cursor with a concrete next teaching action.

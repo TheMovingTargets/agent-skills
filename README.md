@@ -8,6 +8,26 @@ Install into the current project or folder:
 npx skills@latest add TheMovingTargets/agent-skills
 ```
 
+### Install as a plugin
+
+The repository is also a plugin marketplace, `tmt`, with one plugin, `tmt-agent-skills`, that bundles every skill below.
+
+Claude Code:
+
+```bash
+claude plugin marketplace add TheMovingTargets/agent-skills
+claude plugin install tmt-agent-skills@tmt
+```
+
+Codex:
+
+```bash
+codex plugin marketplace add TheMovingTargets/agent-skills
+codex plugin add tmt-agent-skills@tmt
+```
+
+Claude Code only auto-updates a third-party marketplace after you turn on auto-update for it (`autoUpdate: true` on the marketplace, or **Enable auto-update** in `/plugin` → Marketplaces). Plugins reinstall only when the `version` in `.claude-plugin/plugin.json` and `.codex-plugin/plugin.json` changes, so bump both with `package.json` on every release.
+
 ## Included Skills
 
 ### Cognitive Reload

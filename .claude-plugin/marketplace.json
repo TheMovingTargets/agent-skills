@@ -1,0 +1,13 @@
+{
+  "name": "tmt",
+  "owner": {
+    "name": "TheMovingTargets"
+  },
+  "plugins": [
+    {
+      "name": "tmt-agent-skills",
+      "source": "./",
+      "description": "Cross-agent skills from TheMovingTargets."
+    }
+  ]
+}

@@ -1,13 +1,19 @@
 {
-  "name": "cognitive-reload",
-  "version": "0.6.1",
-  "description": "Guided, resumable codebase tutoring with HITL cognition tracking.",
+  "name": "tmt-agent-skills",
+  "version": "0.8.0",
+  "description": "Cross-agent skills from TheMovingTargets.",
   "author": {
     "name": "TheMovingTargets"
   },
   "repository": "https://github.com/TheMovingTargets/agent-skills",
   "license": "MIT",
   "skills": [
-    "./skills/cognitive-reload"
+    "./skills/cognitive-reload",
+    "./skills/doc-pdf-signature-embed",
+    "./skills/tmt-agent-deploy",
+    "./skills/tmt-codex-code-review",
+    "./skills/tmt-codex-plan-review",
+    "./skills/tmt-field-debug",
+    "./skills/tmt-smart-merge"
   ]
 }

@@ -27,6 +27,7 @@ hitl-cognition/
     hitl-topics.svg
     hitl-assessed.svg
     hitl-freshness.svg
+    hitl-*.png          (Azure DevOps repositories, when PyMuPDF is available)
     shields/
       cognition.json
       topics.json
@@ -59,6 +60,8 @@ Useful options:
 - `--privacy public`: default sanitized export.
 - `--privacy private`: include learner identity and raw learner questions.
 - `--readme README.md`: insert/update the root README badge block.
+- `--refresh`: re-age a published export from its `current.json` for today's date (freshness colour, index, level), without local progress; it leaves `current.json` and history alone, and files change only when an age threshold (7, 30, 90 days) is crossed, so it suits a scheduled job.
+- `--badge-format auto|svg|png`: badge images used in Markdown. `auto` (default) uses PNG for Azure DevOps repositories, which do not display SVG images in Markdown, and SVG elsewhere. PNG badges need PyMuPDF (`pip install pymupdf`); without it `auto` warns and writes SVG, so in an Azure DevOps repository run the exporter with a Python that has PyMuPDF.
 - `--progress PATH`: export from a specific local progress file.
 
 After approval, the default command (run from the active skill directory) is:
@@ -75,12 +78,12 @@ writes are blocked by the environment.
 Public mode:
 
 - include topic names, states, verified scores, code anchors, timestamps, and aggregate counts
-- exclude GitHub login
+- exclude the learner login (GitHub or Azure DevOps)
 - exclude raw teach-back answers
 - exclude raw learner questions
 - include unresolved question count, not raw unresolved question text
 
-Private mode may include GitHub login and raw learner questions. Use it only for
+Private mode may include the learner login and raw learner questions. Use it only for
 local/team repositories where that disclosure is intended.
 
 ## README Badge Block

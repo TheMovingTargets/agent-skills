@@ -1,6 +1,6 @@
 # Cognitive Reload
 
-An interactive, diagram-first codebase tutor with optional teach-back assessment and local progress memory. Runs across agent harnesses (Claude Code, Codex, opencode, Pi) and renders diagrams with no setup by default. Progress optionally persists per GitHub user when `gh` is available.
+An interactive, diagram-first codebase tutor with optional teach-back assessment and local progress memory. Runs across agent harnesses (Claude Code, Codex, opencode, Pi) and renders diagrams with no setup by default. Progress optionally persists per learner: a GitHub user when `gh` is available, or an Azure DevOps user (through `az login` or `AZURE_DEVOPS_EXT_PAT`) for Azure DevOps repositories.
 
 ## Install
 
@@ -157,10 +157,10 @@ During normal skill use, Cognitive Reload offers this export at the end of a
 reload session. After approval, the agent should invoke the exporter directly
 rather than asking you to run the command manually.
 
-Public exports omit GitHub login, raw learner questions, and raw assessment answers.
+Public exports omit the learner login, raw learner questions, and raw assessment answers.
 Use `--privacy private` only for intended private/team artifacts.
 
-The progress helper requires Python 3 and Git. An authenticated GitHub CLI (`gh`) is optional and only enables persistent learner identity across sessions; without it, tutoring still works with session-only progress. Diagrams need nothing extra (native Mermaid fence); the optional **local** image tier additionally requires Docker Desktop and Docker Compose.
+The progress helper requires Python 3 and Git. An authenticated GitHub CLI (`gh`), or for Azure DevOps repositories the Azure CLI (`az login`) or an `AZURE_DEVOPS_EXT_PAT` token, is optional and only enables persistent learner identity across sessions; without it, tutoring still works with session-only progress. PNG badges for Azure DevOps repositories (which do not display SVG in Markdown) need PyMuPDF (`pip install pymupdf`); without it the exporter writes SVG badges. Diagrams need nothing extra (native Mermaid fence); the optional **local** image tier additionally requires Docker Desktop and Docker Compose.
 
 ## Version
 

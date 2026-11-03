@@ -2,10 +2,13 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "title": "Cognitive Reload Learner Progress",
   "type": "object",
-  "required": ["schema_version", "github_login", "repository", "updated_at", "topics", "resume"],
+  "required": ["schema_version", "repository", "updated_at", "topics", "resume"],
+  "anyOf": [{"required": ["learner_login"]}, {"required": ["github_login"]}],
   "properties": {
     "schema_version": {"const": "0.4.0"},
     "github_login": {"type": "string", "minLength": 1},
+    "learner_login": {"type": "string", "minLength": 1},
+    "identity_provider": {"enum": ["github", "azure-devops"]},
     "repository": {
       "type": "object",
       "required": ["host", "owner", "name"],
@@ -14,7 +17,9 @@
         "owner": {"type": "string"},
         "name": {"type": "string"},
         "target_ref": {"type": ["string", "null"]},
-        "target_commit": {"type": ["string", "null"]}
+        "target_commit": {"type": ["string", "null"]},
+        "provider": {"enum": ["github", "azure-devops"]},
+        "organization_url": {"type": "string"}
       },
       "additionalProperties": false
     },

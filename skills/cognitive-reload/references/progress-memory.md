@@ -1,10 +1,15 @@
-# GitHub User Progress Memory
+# Learner Progress Memory
 
-Progress is keyed by the authenticated GitHub user and repository, not by commit author or OS username.
+Progress is keyed by the authenticated learner (a GitHub or Azure DevOps user) and repository, not by commit author or OS username.
 
 ## Identity
 
-Use `gh api user --jq .login` through `scripts/progress_store.py`. Normalize the repository from the `origin` remote. If `gh` is absent or unauthenticated, use session-only state and tell the learner once.
+Run `scripts/progress_store.py identity`. It normalizes the repository from the `origin` remote and picks the identity provider from it:
+
+- **GitHub** remotes: the login from `gh api user --jq .login`.
+- **Azure DevOps** remotes (`dev.azure.com`, `ssh.dev.azure.com`, `*.visualstudio.com`, or any host serving the `<org>/<project>/_git/<repo>` layout, such as a git proxy): the signed-in user's account from the organization's `_apis/connectionData`, through the Azure CLI's `az login` first and then a personal access token in `AZURE_DEVOPS_EXT_PAT`. For a proxied remote the organization is assumed to be `https://dev.azure.com/<org>`; set `COGNITIVE_RELOAD_ADO_ORG_URL` to override it.
+
+If the provider's sign-in is absent or fails, use session-only state and tell the learner once.
 
 Do not ask the learner to authenticate unless they ask for persistent progress.
 
@@ -14,9 +19,10 @@ Default local path:
 
 ```text
 ${XDG_DATA_HOME:-~/.local/share}/cognitive-reload/github/<host>/<owner>/<repo>/<login>/progress.json
+${XDG_DATA_HOME:-~/.local/share}/cognitive-reload/azure-devops/dev.azure.com/<org>/<project>/<repo>/<account>/progress.json
 ```
 
-This is outside the working tree, so report-only mode does not dirty the repository. It is local to the current machine. Do not claim it syncs through GitHub.
+This is outside the working tree, so report-only mode does not dirty the repository. It is local to the current machine. Do not claim it syncs through GitHub or Azure DevOps.
 
 An organization may later provide a connector-backed store. Do not upload progress, create a gist, or commit it without explicit permission.
 
@@ -24,7 +30,7 @@ An organization may later provide a connector-backed store. Do not upload progre
 
 Use `assets/progress.schema.json` as the contract. Preserve:
 
-- repository and GitHub login
+- repository, identity provider and learner login (`learner_login`; GitHub records also keep `github_login`)
 - last target ref and commit
 - orientation status
 - per-topic state: `unseen`, `introduced`, `explored`, or `assessed`

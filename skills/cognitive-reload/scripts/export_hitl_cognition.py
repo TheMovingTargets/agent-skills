@@ -58,7 +58,7 @@ def read_progress(repo: Path, progress_path: Path | None) -> dict:
     script = Path(__file__).with_name("progress_store.py")
     output = run([sys.executable, str(script), "get", "--repo", str(repo)], repo)
     if output == "null":
-        raise RuntimeError("no local Cognitive Reload progress found for this GitHub user and repository")
+        raise RuntimeError("no local Cognitive Reload progress found for this learner and repository")
     return json.loads(output)
 
 
@@ -210,16 +210,83 @@ def build_summary(progress: dict, privacy: str) -> dict:
 
     if privacy == "private":
         summary["github_login"] = progress.get("github_login")
+        summary["learner_login"] = progress.get("learner_login") or progress.get("github_login")
+        summary["identity_provider"] = progress.get("identity_provider", "github")
         summary["learner_questions"] = progress.get("learner_questions") or []
         summary["unresolved_questions"] = progress.get("unresolved_questions") or []
 
     return summary
 
 
+def badge_widths(label: str, message: str) -> tuple[int, int]:
+    return max(58, 7 * len(label) + 10), max(48, 7 * len(message) + 10)
+
+
+def png_renderer():
+    """PyMuPDF if installed (PNG badges need it); None otherwise. The exporter itself stays dependency-free."""
+    try:
+        import pymupdf
+        return pymupdf
+    except ImportError:
+        try:
+            import fitz
+            return fitz
+        except ImportError:
+            return None
+
+
+def _rgb(color: str) -> tuple[float, float, float]:
+    value = color.lstrip("#")
+    if len(value) == 3:
+        value = "".join(char * 2 for char in value)
+    return tuple(int(value[index:index + 2], 16) / 255 for index in (0, 2, 4))
+
+
+def badge_png(label: str, message: str, color_name: str, renderer, scale: int = 2) -> bytes:
+    """The same badge as `badge_svg`, drawn directly at `scale`x for hosts that do not show SVG in Markdown
+    (Azure DevOps). Drawn rather than rasterised: MuPDF's SVG support drops the clip path, gradient and centring."""
+    label_width, message_width = badge_widths(label, message)
+    width = label_width + message_width
+    document = renderer.open()
+    page = document.new_page(width=width, height=20)
+    radius = 3 / 20  # PyMuPDF takes a fraction of the shorter side: 3 px, like the SVG's rx="3"
+    page.draw_rect(renderer.Rect(0, 0, width, 20), color=None,
+                   fill=_rgb(BADGE_COLORS.get(color_name, color_name)), radius=radius)
+    page.draw_rect(renderer.Rect(0, 0, label_width, 20), color=None, fill=_rgb("#555"), radius=radius)
+    page.draw_rect(renderer.Rect(label_width - 3, 0, label_width, 20), color=None, fill=_rgb("#555"))  # square join
+    for start, end, text in ((0, label_width, label), (label_width, width, message)):
+        x = start + (end - start - renderer.get_text_length(text, fontname="helv", fontsize=11)) / 2
+        page.insert_text((x, 15), text, fontname="helv", fontsize=11, color=(0, 0, 0), fill_opacity=0.3)
+        page.insert_text((x, 14), text, fontname="helv", fontsize=11, color=(1, 1, 1))
+    return page.get_pixmap(matrix=renderer.Matrix(scale, scale), alpha=True).tobytes("png")
+
+
+def refresh_summary(current: dict) -> dict:
+    """Recompute a published summary for today: freshness, and the index and level it feeds, change; everything
+    else comes from the published current.json, so no learner progress or identity is needed (CI can run it)."""
+    if current.get("privacy") != "public":
+        raise RuntimeError("--refresh only rebuilds public exports; rerun the export from local progress instead")
+    cognition = current["hitl_cognition"]
+    counts = current.get("counts") or {}
+    progress = {
+        "orientation": cognition.get("orientation", "not_started"),
+        "updated_at": cognition.get("last_reload_at"),
+        "repository": current.get("repository") or {},
+        "topics": {topic["id"]: {"state": topic["state"], "verified_score": topic["verified_score"],
+                                 "concepts_seen": topic.get("concepts_seen") or [],
+                                 "code_anchors": topic.get("code_anchors") or [],
+                                 "assessment_attempts": [None] * topic.get("assessment_attempt_count", 0)}
+                   for topic in current.get("topics") or []},
+        "learner_questions": [None] * counts.get("learner_questions", 0),
+        "unresolved_questions": [None] * counts.get("unresolved_questions", 0),
+        "resume": current.get("resume") or {},
+    }
+    return build_summary(progress, "public")
+
+
 def badge_svg(label: str, message: str, color_name: str) -> str:
     color = BADGE_COLORS.get(color_name, color_name)
-    label_width = max(58, 7 * len(label) + 10)
-    message_width = max(48, 7 * len(message) + 10)
+    label_width, message_width = badge_widths(label, message)
     width = label_width + message_width
     label_text_x = label_width / 2
     message_text_x = label_width + message_width / 2
@@ -257,14 +324,24 @@ def badge_color_for_freshness(days: int | None) -> str:
     return "red"
 
 
-def freshness_message(days: int | None) -> str:
+def freshness_band(days: int | None) -> str:
+    """The age band behind the badge colour; changes only when a threshold is crossed."""
     if days is None:
         return "unknown"
-    if days == 0:
-        return "today"
-    if days == 1:
-        return "1 day"
-    return f"{days} days"
+    if days <= 7:
+        return "at most 7 days"
+    if days <= 30:
+        return "8-30 days"
+    if days <= 90:
+        return "31-90 days"
+    return "over 90 days"
+
+
+def freshness_message(last_reload_at: str | None) -> str:
+    """The reload date. A badge is a static image, so a relative age ("today", "3 days") would go stale; the colour
+    ages instead, whenever the exporter runs (see --refresh)."""
+    parsed = parse_datetime(last_reload_at)
+    return parsed.astimezone(timezone.utc).date().isoformat() if parsed else "unknown"
 
 
 def shields(label: str, message: str, color: str) -> dict:
@@ -282,7 +359,31 @@ def markdown_list(values: list[str]) -> str:
     return "\n".join(f"- `{value}`" if "/" in value or ":" in value else f"- {value}" for value in values)
 
 
-def current_markdown(summary: dict) -> str:
+def badge_definitions(cognition: dict) -> dict[str, tuple[str, str, str]]:
+    """Badge name → (label, message, color)."""
+    return {
+        "cognition": ("HITL cognition", f'{cognition["level"]} {cognition["index"]}', cognition["color"]),
+        "topics": ("HITL topics", f'{cognition["explored_topics"]}/{cognition["topic_count"]} explored', "blue"),
+        "assessed": ("HITL assessed", f'{cognition["assessed_topics"]}/{cognition["topic_count"]} assessed',
+                     "green" if cognition["assessed_topics"] else "lightgrey"),
+        "freshness": ("HITL freshness", freshness_message(cognition["last_reload_at"]),
+                      badge_color_for_freshness(cognition["freshness_days"])),
+    }
+
+
+def badge_markdown(cognition: dict, prefix: str, badge_format: str) -> str:
+    """Image lines for the four badges. PNG badges are drawn at 2x and sized back with Azure DevOps' `=WxH` syntax."""
+    lines = []
+    for name, (label, message, _) in badge_definitions(cognition).items():
+        path = f"{prefix}hitl-{name}.{badge_format}"
+        if badge_format == "png":
+            label_width, message_width = badge_widths(label, message)
+            path += f" ={label_width + message_width}x20"
+        lines.append(f"![{label}]({path})")
+    return " ".join(lines)  # one line: Azure DevOps turns each line break into a break, stacking the badges
+
+
+def current_markdown(summary: dict, badge_format: str = "svg") -> str:
     cognition = summary["hitl_cognition"]
     repo = summary.get("repository") or {}
     rows = []
@@ -311,14 +412,11 @@ Repository target: `{target}` at `{commit}`
 
 Last reload: `{cognition["last_reload_at"] or "unknown"}`
 
-Freshness: `{freshness_message(cognition["freshness_days"])}`
+Freshness: reloaded `{freshness_message(cognition["last_reload_at"])}`, `{freshness_band(cognition["freshness_days"])}` old when these files were last written
 
 ## Badges
 
-![HITL cognition](badges/hitl-cognition.svg)
-![HITL topics](badges/hitl-topics.svg)
-![HITL assessed](badges/hitl-assessed.svg)
-![HITL freshness](badges/hitl-freshness.svg)
+{badge_markdown(cognition, "badges/", badge_format)}
 
 ## Topic Map
 
@@ -367,20 +465,17 @@ def write_json(path: Path, data: dict) -> None:
     write_text(path, json.dumps(data, indent=2) + "\n")
 
 
-def readme_block() -> str:
-    return """<!-- hitl-cognition:start -->
-![HITL cognition](hitl-cognition/badges/hitl-cognition.svg)
-![HITL topics](hitl-cognition/badges/hitl-topics.svg)
-![HITL assessed](hitl-cognition/badges/hitl-assessed.svg)
-![HITL freshness](hitl-cognition/badges/hitl-freshness.svg)
+def readme_block(cognition: dict, badge_format: str = "svg") -> str:
+    return f"""<!-- hitl-cognition:start -->
+{badge_markdown(cognition, "hitl-cognition/badges/", badge_format)}
 
 See [`hitl-cognition/`](hitl-cognition/) for the current human-in-the-loop cognition map.
 <!-- hitl-cognition:end -->"""
 
 
-def update_readme(path: Path) -> None:
+def update_readme(path: Path, cognition: dict, badge_format: str = "svg") -> None:
     existing = path.read_text() if path.exists() else ""
-    block = readme_block()
+    block = readme_block(cognition, badge_format)
     if README_BLOCK_RE.search(existing):
         updated = README_BLOCK_RE.sub(block, existing)
     else:
@@ -388,7 +483,26 @@ def update_readme(path: Path) -> None:
     write_text(path, updated)
 
 
-def export(summary: dict, out: Path, readme: Path | None) -> list[Path]:
+def resolve_badge_format(requested: str, summary: dict, renderer) -> str:
+    """`auto` gives PNG for Azure DevOps repositories (which do not show SVG in Markdown) when PyMuPDF is present,
+    and SVG everywhere else."""
+    if requested == "png" and renderer is None:
+        raise RuntimeError("PNG badges need PyMuPDF: pip install pymupdf (or use --badge-format svg)")
+    if requested != "auto":
+        return requested
+    if (summary.get("repository") or {}).get("provider") != "azure-devops":
+        return "svg"
+    if renderer is None:
+        print("warning: Azure DevOps does not show SVG badges in Markdown; install PyMuPDF (pip install pymupdf) "
+              "for PNG badges. Writing SVG.", file=sys.stderr)
+        return "svg"
+    return "png"
+
+
+def export(summary: dict, out: Path, readme: Path | None, badge_format: str = "svg", renderer=None,
+           snapshot: bool = True) -> list[Path]:
+    """Write the dashboard, badges and topic pages; with `snapshot`, also current.json and today's history entry
+    (a refresh leaves those as the record of the reload)."""
     written: list[Path] = []
     cognition = summary["hitl_cognition"]
     badges = out / "badges"
@@ -398,38 +512,29 @@ def export(summary: dict, out: Path, readme: Path | None) -> list[Path]:
     date_name = datetime.now(timezone.utc).date().isoformat()
 
     files = {
-        out / "README.md": current_markdown(summary),
-        out / "current.md": current_markdown(summary),
-        badges / "hitl-cognition.svg": badge_svg(
-            "HITL cognition",
-            f'{cognition["level"]} {cognition["index"]}',
-            cognition["color"],
-        ),
-        badges / "hitl-topics.svg": badge_svg(
-            "HITL topics",
-            f'{cognition["explored_topics"]}/{cognition["topic_count"]} explored',
-            "blue",
-        ),
-        badges / "hitl-assessed.svg": badge_svg(
-            "HITL assessed",
-            f'{cognition["assessed_topics"]}/{cognition["topic_count"]} assessed',
-            "green" if cognition["assessed_topics"] else "lightgrey",
-        ),
-        badges / "hitl-freshness.svg": badge_svg(
-            "HITL freshness",
-            freshness_message(cognition["freshness_days"]),
-            badge_color_for_freshness(cognition["freshness_days"]),
-        ),
+        out / "README.md": current_markdown(summary, badge_format),
+        out / "current.md": current_markdown(summary, badge_format),
     }
+    for name, (label, message, color) in badge_definitions(cognition).items():
+        files[badges / f"hitl-{name}.svg"] = badge_svg(label, message, color)
 
     for path, text in files.items():
         write_text(path, text)
         written.append(path)
 
-    write_json(out / "current.json", summary)
-    written.append(out / "current.json")
-    write_json(history_dir / f"{date_name}.json", summary)
-    written.append(history_dir / f"{date_name}.json")
+    if badge_format == "png":
+        for name, (label, message, color) in badge_definitions(cognition).items():
+            path = badges / f"hitl-{name}.png"
+            temporary = path.with_suffix(".png.tmp")
+            temporary.write_bytes(badge_png(label, message, color, renderer))
+            os.replace(temporary, path)
+            written.append(path)
+
+    if snapshot:
+        write_json(out / "current.json", summary)
+        written.append(out / "current.json")
+        write_json(history_dir / f"{date_name}.json", summary)
+        written.append(history_dir / f"{date_name}.json")
 
     shields_payloads = {
         shields_dir / "cognition.json": shields(
@@ -443,7 +548,7 @@ def export(summary: dict, out: Path, readme: Path | None) -> list[Path]:
         ),
         shields_dir / "freshness.json": shields(
             "HITL freshness",
-            freshness_message(cognition["freshness_days"]),
+            freshness_message(cognition["last_reload_at"]),
             badge_color_for_freshness(cognition["freshness_days"]),
         ),
     }
@@ -457,7 +562,7 @@ def export(summary: dict, out: Path, readme: Path | None) -> list[Path]:
         written.append(path)
 
     if readme:
-        update_readme(readme)
+        update_readme(readme, cognition, badge_format)
         written.append(readme)
 
     return written
@@ -471,23 +576,33 @@ def main() -> int:
     parser.add_argument("--privacy", choices=["public", "private"], default="public")
     parser.add_argument("--dry-run", action="store_true")
     parser.add_argument("--readme", help="root README path to update with badge block")
+    parser.add_argument("--badge-format", choices=["auto", "svg", "png"], default="auto",
+                        help="badge images in Markdown; auto uses PNG for Azure DevOps (needs PyMuPDF), else SVG")
+    parser.add_argument("--refresh", action="store_true",
+                        help="re-age a published export from its current.json (freshness colour, index, level); "
+                             "needs no local progress, so it can run on a schedule")
     args = parser.parse_args()
 
     try:
         repo = Path(args.repo).resolve()
-        progress_path = Path(args.progress).resolve() if args.progress else None
-        progress = read_progress(repo, progress_path)
-        summary = build_summary(progress, args.privacy)
-        if args.dry_run:
-            print(json.dumps(summary, indent=2))
-            return 0
         out = Path(args.out)
         if not out.is_absolute():
             out = repo / out
+        if args.refresh:
+            summary = refresh_summary(json.loads((out / "current.json").read_text()))
+        else:
+            progress_path = Path(args.progress).resolve() if args.progress else None
+            progress = read_progress(repo, progress_path)
+            summary = build_summary(progress, args.privacy)
+        if args.dry_run:
+            print(json.dumps(summary, indent=2))
+            return 0
         readme = Path(args.readme) if args.readme else None
         if readme and not readme.is_absolute():
             readme = repo / readme
-        written = export(summary, out, readme)
+        renderer = png_renderer()
+        badge_format = resolve_badge_format(args.badge_format, summary, renderer)
+        written = export(summary, out, readme, badge_format, renderer, snapshot=not args.refresh)
         for path in written:
             print(path)
         return 0

@@ -62,6 +62,7 @@ def main() -> int:
 
     required = [
         ROOT / ".claude-plugin" / "plugin.json",
+        ROOT / ".claude-plugin" / "marketplace.json",
         ROOT / ".codex-plugin" / "plugin.json",
         ROOT / ".agents" / "plugins" / "marketplace.json",
         ROOT / "skills" / "cognitive-reload" / "scripts" / "progress_store.py",
@@ -89,35 +90,64 @@ def main() -> int:
         f"missing required file: {path}" for path in required if not path.exists()
     )
 
+    version = None
     try:
         package = json.loads((ROOT / "package.json").read_text(encoding="utf-8"))
         if package.get("name") != "tmt-agent-skills":
             errors.append("package.json: expected package name tmt-agent-skills")
+        version = package.get("version")
     except (OSError, json.JSONDecodeError) as exc:
         errors.append(f"package.json: {exc}")
 
+    for marketplace_path in (
+        ROOT / ".agents" / "plugins" / "marketplace.json",
+        ROOT / ".claude-plugin" / "marketplace.json",
+    ):
+        label = marketplace_path.relative_to(ROOT)
+        try:
+            marketplace = json.loads(marketplace_path.read_text(encoding="utf-8"))
+            if marketplace.get("name") != "tmt":
+                errors.append(f"{label}: expected marketplace name tmt")
+            plugin_names = [
+                item.get("name") for item in marketplace.get("plugins", [])
+            ]
+            if plugin_names != ["tmt-agent-skills"]:
+                errors.append(f"{label}: expected one plugin, tmt-agent-skills")
+        except (OSError, json.JSONDecodeError) as exc:
+            errors.append(f"{label}: {exc}")
+
+    # Installed plugins only update when the plugin version changes, so both
+    # manifests must carry the package.json version on every release.
     try:
-        marketplace = json.loads(
-            (ROOT / ".agents" / "plugins" / "marketplace.json").read_text(
-                encoding="utf-8"
-            )
+        claude = json.loads(
+            (ROOT / ".claude-plugin" / "plugin.json").read_text(encoding="utf-8")
         )
-        if marketplace.get("name") != "tmt-agent-skills":
-            errors.append("marketplace.json: expected name tmt-agent-skills")
-        plugin_names = [item.get("name") for item in marketplace.get("plugins", [])]
-        if plugin_names != ["cognitive-reload"]:
-            errors.append("marketplace.json: cognitive-reload plugin identity changed")
+        if claude.get("name") != "tmt-agent-skills":
+            errors.append("Claude plugin identity changed")
+        if claude.get("version") != version:
+            errors.append(
+                f"Claude plugin version {claude.get('version')} does not match "
+                f"package.json version {version}"
+            )
+        expected_skills = sorted(f"./skills/{name}" for name in SKILLS)
+        if sorted(claude.get("skills", [])) != expected_skills:
+            errors.append("Claude plugin must list every skill in skills/")
     except (OSError, json.JSONDecodeError) as exc:
-        errors.append(f"marketplace.json: {exc}")
+        errors.append(f"Claude plugin manifest: {exc}")
 
     try:
         codex = json.loads(
             (ROOT / ".codex-plugin" / "plugin.json").read_text(encoding="utf-8")
         )
-        if codex.get("name") != "cognitive-reload":
+        if codex.get("name") != "tmt-agent-skills":
             errors.append("Codex plugin identity changed")
-        if codex.get("skills") != "./skills/cognitive-reload":
-            errors.append("Codex plugin must expose only cognitive-reload")
+        if codex.get("version") != version:
+            errors.append(
+                f"Codex plugin version {codex.get('version')} does not match "
+                f"package.json version {version}"
+            )
+        if codex.get("skills") != "./skills":
+            errors.append("Codex plugin must expose every skill in ./skills")
     except (OSError, json.JSONDecodeError) as exc:
         errors.append(f"Codex plugin manifest: {exc}")
 

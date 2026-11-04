@@ -45,6 +45,14 @@ _Avoid_: topic (a Cognitive Reload topic is repository-specific), skill
 A broad part of the software stack, such as frontend, backend or infrastructure, that Evidence can be attributed to across all Languages and repositories.
 _Avoid_: domain, layer, tier, a Cognitive Reload area (a part of one repository)
 
+**Vocabulary**:
+A reviewed, published list of the Concepts, Areas or Harnesses that Evidence may name. It grows only by review, and its identifiers are never reused or removed.
+_Avoid_: taxonomy, catalog (unless it's a language pack's own list), tag list
+
+**Held Evidence**:
+Evidence naming something not yet in a Vocabulary, kept on the developer's machine until that addition is accepted, and never in the Profile Repo until then.
+_Avoid_: draft Evidence, provisional Evidence
+
 **Proficiency**:
 How well a developer commands something within a Dimension, judged only from Evidence.
 _Avoid_: skill level, rating, score (unless it's a specific assessment score)

@@ -43,7 +43,7 @@ _Avoid_: topic (a Cognitive Reload topic is repository-specific), skill
 
 **Area**:
 A broad part of the software stack, such as frontend, backend or infrastructure, that Evidence can be attributed to across all Languages and repositories.
-_Avoid_: domain, layer, tier
+_Avoid_: domain, layer, tier, a Cognitive Reload area (a part of one repository)
 
 **Proficiency**:
 How well a developer commands something within a Dimension, judged only from Evidence.
@@ -55,7 +55,7 @@ _Avoid_: freshness, recency score
 
 **Evidence**:
 A dated record of something the developer did or showed during a session, stated only in Dimensions, Areas and Concepts, from which Proficiency and Currency are derived. It never identifies the repository it came from.
-_Avoid_: activity, log entry, self-assessment
+_Avoid_: activity, log entry, self-assessment, evidence ledger (Cognitive Reload's record of what the agent inspected)
 
 **HITL Cognition Artifact**:
 A sanitized, publishable record from Cognitive Reload showing that a human understands code in a repository. It lives in that repository, never in a Proficiency Profile.

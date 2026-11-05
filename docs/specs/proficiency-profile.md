@@ -20,16 +20,16 @@ Repository-specific detail stays in each skill's local store, and in each reposi
 
 ```mermaid
 flowchart LR
-  T[trinity-helicopter-program] -- record … --> W
-  C[cognitive-reload] -- record … --> W
-  CT[cognitive-reload-with-trinity] -. drives both .-> T & C
-  subgraph P[proficiency-profile skill]
-    W[profile.py writer] --> L[(local clone)]
-    W --> H[(Held Evidence, spool)]
-    R[README renderer + FSRS-6 replay] --> L
+  T["trinity-helicopter-program"] -->|"record …"| W
+  C["cognitive-reload"] -->|"record …"| W
+  CT["cognitive-reload-with-trinity"] -.->|"drives both"| T & C
+  subgraph P["proficiency-profile skill"]
+    W["profile.py writer"] --> L[("local clone")]
+    W --> H[("Held Evidence, spool")]
+    R["README renderer + FSRS-6 replay"] --> L
   end
-  L <-- pull --rebase / push --> GH[(Profile Repo on github.com or gitlab.com)]
-  T & C -- read levels and Currency --> R
+  L <-->|"pull --rebase / push"| GH[("Profile Repo on github.com or gitlab.com")]
+  T & C -->|"read levels and Currency"| R
 ```
 
 ## 2. Evidence format

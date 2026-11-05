@@ -759,12 +759,18 @@ def cmd_session_start(args) -> int:
     host = repo_remote(repo).partition("/")[0]
     session = {
         "harness": harness,
+        "day": today().isoformat(),
         "repo": repo_key(repo),
         "repo_kinds": hosting.repo_kinds(host),
         "excluded": excluded,
         "off_record": False,
         "lines": [],
     }
+    running = load_session()
+    if running and all(running.get(k) == session[k] for k in ("harness", "day", "repo")):
+        # A second skill in the same session (cognitive-reload-with-trinity): join it.
+        print_state(running)
+        return 0
     if spooling():
         with locked():
             save_session(session)
@@ -784,7 +790,12 @@ def cmd_session_start(args) -> int:
         save_session(session)
         if recording(session):
             write_use_line(session, vocab)
-    if excluded:
+    print_state(session)
+    return 0
+
+
+def print_state(session: dict) -> None:
+    if session.get("excluded"):
         print("profile: excluded")
     elif has_remote():
         print("profile: remote")
@@ -794,7 +805,6 @@ def cmd_session_start(args) -> int:
         print("profile: declined")
     else:
         print("profile: none")
-    return 0
 
 
 def cmd_record(args) -> int:

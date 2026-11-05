@@ -33,7 +33,7 @@ A learning skill drives these steps:
    - Pass ids only from the Vocabularies; never invent one. The writer holds any id it doesn't know as Held Evidence, off the Profile Repo, and the debrief lists it.
 3. **End.** At the debrief, run `session-end` and put the line it prints into the recap, word for word. If it prints nothing, add nothing. It may end with held ids to check (below), or an offer to add a remote or to link an account. Act on an offer only when the developer says yes.
 
-The step is done when `session-end` has run once for the session. A skill driving another learning skill runs one lifecycle for both.
+The step is done when `session-end` has run once for the session. A skill driving another learning skill runs one lifecycle for both. A second `session-start` for the same repo, Harness and day joins the running session, so it never adds a commit.
 
 ## Reading the profile
 

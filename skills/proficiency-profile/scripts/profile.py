@@ -21,14 +21,17 @@ from __future__ import annotations
 import argparse
 import contextlib
 import datetime as dt
+import errno
 import fcntl
 import hashlib
 import json
 import os
 import re
 import secrets
+import shutil
 import subprocess
 import sys
+import tempfile
 import uuid
 from pathlib import Path
 
@@ -71,8 +74,108 @@ def clone_dir() -> Path:
     return _xdg("XDG_DATA_HOME", ".local/share")
 
 
-def state_dir() -> Path:
+def real_state_dir() -> Path:
     return _xdg("XDG_STATE_HOME", ".local/state")
+
+
+def state_dir() -> Path:
+    """Machine id, lock, session and held queue: the spool's copy while spooling."""
+    return spool_root() / "state" if spooling() else real_state_dir()
+
+
+# --- The Codex sandbox and the spool (§9) ----------------------------------------
+#
+# Codex's default workspace-write sandbox can't write the clone or the state
+# folder, keeps .git read-only and has no network. When a write is blocked the
+# writer spools Evidence to $TMPDIR, never the workspace, and merges it at the
+# next session-start that can write. It never fails the learning session.
+
+_spooling: bool | None = None
+
+
+def spool_root() -> Path:
+    return Path(os.environ.get("TMPDIR") or tempfile.gettempdir()) / "proficiency-profile-spool"
+
+
+def spool_evidence() -> Path:
+    return spool_root() / "evidence.jsonl"
+
+
+def _writable(path: Path) -> bool:
+    try:
+        path.mkdir(parents=True, exist_ok=True)
+        probe = path / f".write-probe-{os.getpid()}"
+        probe.write_text("", encoding="utf-8")
+        probe.unlink()
+        return True
+    except OSError:
+        return False
+
+
+def spooling() -> bool:
+    """True when the state folder, the clone or its .git can't be written."""
+    global _spooling
+    if _spooling is None:
+        targets = [real_state_dir()]
+        if profile_exists():
+            targets += [clone_dir(), clone_dir() / ".git"]
+        _spooling = not all(_writable(target) for target in targets)
+    return _spooling
+
+
+def in_codex_sandbox() -> bool:
+    return bool(os.environ.get("CODEX_SANDBOX") or os.environ.get("CODEX_SANDBOX_NETWORK_DISABLED"))
+
+
+def network_disabled() -> bool:
+    return os.environ.get("CODEX_SANDBOX_NETWORK_DISABLED") == "1"
+
+
+def codex_snippet() -> str:
+    """The one-time ~/.codex/config.toml fix, with resolved absolute paths."""
+    data = os.environ.get("XDG_DATA_HOME") or str(Path.home() / ".local/share")
+    roots = [
+        os.path.abspath(clone_dir()),
+        os.path.abspath(clone_dir()) + "/.git",
+        os.path.abspath(real_state_dir()),
+        os.path.abspath(Path(data) / "trinity-helicopter-program"),
+    ]
+    lines = ["[sandbox_workspace_write]", "writable_roots = ["]
+    lines += [f'  "{root}",' for root in roots]
+    lines += ["]", "# network_access = true   # optional: lets the profile sync from inside Codex"]
+    return "\n".join(lines) + "\n"
+
+
+def report_blocked(nowhere: bool = False) -> None:
+    """Say once, at session start, that writes are blocked and what to do."""
+    sandbox = "codex" if in_codex_sandbox() else "unknown"
+    print(f"PROFILE_WRITE_BLOCKED sandbox={sandbox} spool={'none' if nowhere else spool_root()}")
+    kept = ("Nothing can be written anywhere, so this session's Evidence is lost."
+            if nowhere else
+            "If they decline, carry on: this session's Evidence waits in the spool and is added "
+            "at the next session that can write.")
+    print("The profile can't be written from inside the sandbox. Offer the developer one "
+          "escalated rerun of this command, and if they approve, run every profile.py command "
+          f"this session escalated. {kept} To stop this happening, add this to "
+          "~/.codex/config.toml:")
+    print(codex_snippet(), end="")
+
+
+def merge_spool() -> None:
+    """Fold a spool left by a sandboxed session into the clone. Call under the real lock."""
+    root = spool_root()
+    if not root.exists():
+        return
+    known = {line["id"] for line in all_lines()}
+    append(None, [line for line in read_lines(spool_evidence()) if line["id"] not in known])
+    spooled = held.Queue(root / "state" / "held.json")
+    if spooled.lines:
+        queue = held_queue()
+        queue.lines += spooled.lines
+        for ref, info in spooled.refs.items():
+            queue.refs.setdefault(ref, info)
+        queue.save()
+    shutil.rmtree(root, ignore_errors=True)
 
 
 def excluded_file() -> Path:
@@ -303,6 +406,8 @@ def day_lines(day: dt.date) -> list[dict]:
     lines = []
     for path in sorted(month_dir(day).glob("*.jsonl")):
         lines += read_lines(path)
+    if spooling():
+        lines += read_lines(spool_evidence())
     voided = {
         line["object"]["id"] for line in lines if line["verb"]["id"] == VERBS["voided"]
     }
@@ -332,7 +437,8 @@ def append(session: dict | None, statements: list[dict]) -> None:
     by_month: dict[Path, list[dict]] = {}
     for st in statements:
         day = dt.date.fromisoformat(st["timestamp"][:10])
-        by_month.setdefault(month_dir(day) / f"{machine_id()}.jsonl", []).append(st)
+        path = spool_evidence() if spooling() else month_dir(day) / f"{machine_id()}.jsonl"
+        by_month.setdefault(path, []).append(st)
     for path, group in by_month.items():
         path.parent.mkdir(parents=True, exist_ok=True)
         payload = "".join(json.dumps(st, separators=(",", ":")) + "\n" for st in group)
@@ -386,13 +492,17 @@ def release_held(vocab) -> None:
 
 def discard(ids: set[str]) -> None:
     """Remove uncommitted lines by id from this machine's files. Call under the lock."""
-    for path in (clone_dir() / "evidence").rglob(f"{machine_id()}.jsonl"):
+    if spooling():
+        paths = [spool_evidence()] if spool_evidence().exists() else []
+    else:
+        paths = list((clone_dir() / "evidence").rglob(f"{machine_id()}.jsonl"))
+    for path in paths:
         kept = [line for line in path.read_text(encoding="utf-8").splitlines()
                 if line.strip() and json.loads(line)["id"] not in ids]
         temporary = path.with_suffix(".tmp")
         temporary.write_text("".join(line + "\n" for line in kept), encoding="utf-8")
         temporary.replace(path)
-        if not kept and not tracked(path):
+        if not kept and not spooling() and not tracked(path):
             path.unlink()
 
 
@@ -482,7 +592,7 @@ def pull() -> bool:
     Each machine writes only its own Evidence files, so README.md is the only
     file that can conflict: it is regenerated from the merged Evidence.
     """
-    if run_git("fetch", "-q", "origin").returncode != 0:
+    if network_disabled() or run_git("fetch", "-q", "origin").returncode != 0:
         return False
     if not git("rev-parse", "--verify", "-q", "origin/main", check=False).strip():
         return True
@@ -502,6 +612,8 @@ def pull() -> bool:
 
 def push() -> bool:
     """Push, rebasing and retrying when rejected. Never forces. False when offline."""
+    if network_disabled():
+        return False
     for _ in range(3):
         result = run_git("push", "-q", "-u", "origin", "main")
         if result.returncode == 0:
@@ -569,6 +681,10 @@ def cmd_create(args) -> int:
     """
     if profile_exists():
         print("profile: exists")
+        return 0
+    if spooling() or not _writable(clone_dir().parent):
+        print("profile: none")
+        report_blocked()
         return 0
     kind = hosting.HOME_PROVIDERS[args.host]
     provider = hosting.Provider(kind)
@@ -649,8 +765,18 @@ def cmd_session_start(args) -> int:
         "off_record": False,
         "lines": [],
     }
+    if spooling():
+        with locked():
+            save_session(session)
+            if recording(session):
+                write_use_line(session, vocab)
+        print("profile: excluded" if excluded else
+              "profile: local-only" if profile_exists() else "profile: none")
+        report_blocked()
+        return 0
     with locked():
         if not excluded and profile_exists():
+            merge_spool()
             commit_evidence("recovered")
             if has_remote():
                 session["offline"] = not pull()
@@ -674,6 +800,8 @@ def cmd_session_start(args) -> int:
 def cmd_record(args) -> int:
     session = load_session()
     if session is None:
+        if spooling():  # the blocked session-start already said so
+            return 0
         print("not recorded: no session; run session-start first", file=sys.stderr)
         return EXIT_NO_SESSION
     if not recording(session):
@@ -716,6 +844,19 @@ def cmd_session_end(args) -> int:
     if session is None:
         print("Profile: no session in progress.")
         return 0
+    if spooling():
+        with locked():
+            spooled = {line["id"] for line in read_lines(spool_evidence())}
+            count = len(spooled & set(session.get("lines", []))) if recording(session) else 0
+            session_file().unlink(missing_ok=True)
+        if recording(session):
+            print(f"Profile: {count} lines kept in a temporary spool, to be added at the next "
+                  "session that can write the profile.")
+        elif session.get("excluded"):
+            print("Profile: not recorded, this repo is excluded.")
+        elif session.get("off_record"):
+            print("Profile: off the record, nothing recorded this session.")
+        return 0
     with locked():
         count = commit_evidence() if recording(session) else 0
         pushed = push() if has_remote() else None
@@ -757,7 +898,7 @@ def debrief_offers(session: dict, offer_remote: bool) -> list[str]:
         offers.append(f"Held back, not in the profile yet: {items}. Check each names a public "
                       "technology or pattern, not something from this repo's own code.")
     home = hosting.kind_of(identities()[0])
-    if offer_remote and home in ("github", "gitlab"):
+    if offer_remote and home in ("github", "gitlab") and not network_disabled():
         provider = hosting.Provider(home)
         if provider.signed_in():
             offers.append(f"It can be backed up to a private {provider.label} repo: "
@@ -960,6 +1101,11 @@ def cmd_held(args) -> int:
     return 0
 
 
+def cmd_codex_config(args) -> int:
+    print(codex_snippet(), end="")
+    return 0
+
+
 def cmd_decline(args) -> int:
     state_dir().mkdir(parents=True, exist_ok=True)
     (state_dir() / "declined").write_text(midnight(today()) + "\n", encoding="utf-8")
@@ -1050,11 +1196,26 @@ def main(argv: list[str] | None = None) -> int:
     held_cmd.set_defaults(func=cmd_held)
 
     commands.add_parser(
+        "codex-config", help="print the ~/.codex/config.toml lines that let Codex write the profile"
+    ).set_defaults(func=cmd_codex_config)
+
+    commands.add_parser(
         "decline", help="remember that the developer declined a Profile Repo"
     ).set_defaults(func=cmd_decline)
 
     args = parser.parse_args(argv)
-    return args.func(args)
+    try:
+        return args.func(args)
+    except OSError as exc:
+        if exc.errno not in (errno.EPERM, errno.EACCES, errno.EROFS):
+            raise
+    except RuntimeError as exc:
+        if not re.search(r"index\.lock|Operation not permitted|Permission denied|Read-only", str(exc)):
+            raise
+    # A write was blocked somewhere unexpected: say so, and never fail the session.
+    if args.command == "session-start":
+        report_blocked(nowhere=not _writable(spool_root()))
+    return 0
 
 
 if __name__ == "__main__":

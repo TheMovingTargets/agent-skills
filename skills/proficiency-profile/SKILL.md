@@ -62,6 +62,16 @@ When `session-start` prints `profile: none`, fold one question into the first te
 
 Confirm each of these to the developer in one line.
 
+## Under Codex
+
+Codex's default sandbox can't write the Profile Repo and has no network. When a write is blocked, `session-start` prints a `PROFILE_WRITE_BLOCKED` line, then the offer and the config snippet, and the writer keeps the session's Evidence in a spool under `$TMPDIR`. Every command still exits 0.
+
+1. Offer the developer one escalated rerun of `session-start` (`require_escalated`, with the justification "write your proficiency profile outside the workspace"). If they approve, run every `profile.py` command this session escalated.
+2. If they decline, carry on teaching. The spool is merged at the next session that can write.
+3. Show the printed `config.toml` snippet once, so it doesn't happen again. `codex-config` prints it on request. Its `network_access` line is optional, for sync.
+
+In a Codex cloud task there is no Profile Repo: skip this skill.
+
 ## Checking Held Evidence
 
 When the debrief lists held ids, ask the developer about each one: does it name a public technology or pattern, and is it free of the repo's own names (an internal framework, service or package)?

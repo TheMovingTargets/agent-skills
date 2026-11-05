@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.10.1 - 2026-11-05
+
+- Architecture Concept IRIs move to `https://w3id.org/devprof/concepts/arch/<id>`. The old `/xapi/devprof/` prefix sits in ADL's w3id directory.
+
 ## 0.10.0 - 2026-11-05
 
 - Record scored teach-backs in the learner's Proficiency Profile when the `proficiency-profile` skill is installed. Each generic Architecture Concept the teach-back exercised becomes a `passed` or `failed` line with `score.scaled` = area score / 5. Tutoring records nothing.

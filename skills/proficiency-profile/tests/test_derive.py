@@ -15,7 +15,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "scripts"))
 
 import derive  # noqa: E402
 
-NS = "https://w3id.org/xapi/devprof/"
+NS = "https://w3id.org/devprof/"
 ADL = "http://adlnet.gov/expapi/verbs/"
 DAY0 = dt.date(2026, 1, 5)
 

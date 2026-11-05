@@ -17,7 +17,7 @@ from pathlib import Path
 
 import vocabularies
 
-NS = "https://w3id.org/xapi/devprof/"
+NS = "https://w3id.org/devprof/"
 REPO = "TheMovingTargets/agent-skills"
 PACKS = "skills/trinity-helicopter-program/references/languages"
 

@@ -42,7 +42,7 @@ import hosting  # noqa: E402
 import readme  # noqa: E402
 import vocabularies  # noqa: E402
 
-NS = "https://w3id.org/xapi/devprof/"
+NS = "https://w3id.org/devprof/"
 DIMENSION = NS + "extensions/dimension"
 ADL = "http://adlnet.gov/expapi/verbs/"
 VERBS = {

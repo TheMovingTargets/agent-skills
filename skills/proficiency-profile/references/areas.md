@@ -1,6 +1,6 @@
 # Areas
 
-The Vocabulary of Areas: broad parts of the software stack that Evidence can be tagged with, across every Language and repository. Each id becomes the Activity IRI `https://w3id.org/xapi/devprof/areas/<id>`.
+The Vocabulary of Areas: broad parts of the software stack that Evidence can be tagged with, across every Language and repository. Each id becomes the Activity IRI `https://w3id.org/devprof/areas/<id>`.
 
 Tag an Area only when the code's place in the stack is obvious. A missing Area is better than a wrong one.
 

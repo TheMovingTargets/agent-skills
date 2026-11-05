@@ -1,6 +1,6 @@
 # Architecture Concepts
 
-The Vocabulary of generic architecture patterns that a scored teach-back can record as Evidence in the Proficiency Profile. Each id becomes the Concept IRI `https://w3id.org/xapi/devprof/concepts/arch/<id>`.
+The Vocabulary of generic architecture patterns that a scored teach-back can record as Evidence in the Proficiency Profile. Each id becomes the Concept IRI `https://w3id.org/devprof/concepts/arch/<id>`.
 
 Architecture Concepts have no Dimension of their own: they count under the Language they were taught back in.
 

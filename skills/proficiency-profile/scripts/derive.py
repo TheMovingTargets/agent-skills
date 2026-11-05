@@ -15,7 +15,7 @@ import math
 from collections import defaultdict
 from dataclasses import dataclass, field
 
-NS = "https://w3id.org/xapi/devprof/"
+NS = "https://w3id.org/devprof/"
 ADL = "http://adlnet.gov/expapi/verbs/"
 PRACTICED = NS + "verbs/practiced"
 PASSED, FAILED = ADL + "passed", ADL + "failed"

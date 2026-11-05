@@ -97,6 +97,8 @@ def main() -> int:
         ROOT / "skills" / "proficiency-profile" / "references" / "harnesses.md",
         ROOT / "skills" / "proficiency-profile" / "scripts" / "vocabularies.py",
         ROOT / "skills" / "proficiency-profile" / "scripts" / "profile.py",
+        ROOT / "skills" / "proficiency-profile" / "scripts" / "derive.py",
+        ROOT / "skills" / "proficiency-profile" / "scripts" / "readme.py",
         ROOT / "skills" / "proficiency-profile" / "VERSION",
     ]
     errors.extend(

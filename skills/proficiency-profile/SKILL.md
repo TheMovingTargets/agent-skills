@@ -1,6 +1,6 @@
 ---
 name: proficiency-profile
-description: Records Evidence from the learning skills (Trinity Helicopter Program, Cognitive Reload) into the developer's private Proficiency Profile. Use when a learning skill starts or ends a session or records a card, drill or teach-back, or when the developer says "off the record" or "don't record in this repo".
+description: Records Evidence from the learning skills (Trinity Helicopter Program, Cognitive Reload) into the developer's private Proficiency Profile. Use when a learning skill starts or ends a session or records a card, drill or teach-back, reads levels and Currency for triage, or when the developer says "show my profile", "off the record" or "don't record in this repo".
 ---
 
 # Proficiency Profile
@@ -35,6 +35,12 @@ A learning skill drives these steps:
 
 The step is done when `session-end` has run once for the session. A skill driving another learning skill runs one lifecycle for both.
 
+## Reading the profile
+
+`read --lang <pack> [--concepts <id,…>]` prints JSON for triage: the Language's level counts, band and Last Exercised, then each Concept's `level` (`Introduced`, `Explored`, `Practiced`, `Proven`, or null if never met), `band` (`Current`, `Fading`, `Lapsed`, or null before a successful recall), and the `due_for_refresh` list. `read` with no `--lang` gives every Language's roll-up.
+
+Currency is a band with its Last Exercised date. Present it that way, never as a percentage.
+
 ## Creating the Profile Repo
 
 When `session-start` prints `profile: none`, fold one question into the first teaching message: whether to keep a private Proficiency Profile of what this session shows. Teaching goes on whatever the answer.
@@ -46,6 +52,7 @@ When `session-start` prints `profile: none`, fold one question into the first te
 
 | The developer says | Run |
 |---|---|
+| "show my profile" | `show`, and print its Markdown as it is. |
 | "off the record" | `off-the-record`. This discards the session's uncommitted lines and records nothing more this session. |
 | "don't record in this repo" | `exclude-repo --repo <path>`. Only a hash of the remote is stored. |
 | a recorded line is factually wrong (wrong Concept, wrong person, recorded by mistake) | `lines [--day YYYY-MM-DD]` to find the line's id, then `void <id>`. A changed mind is never a reason to void. |

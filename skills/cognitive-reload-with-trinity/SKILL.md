@@ -36,7 +36,8 @@ After cognitive-reload's startup protocol:
 
 1. Identify the target language of the repo (and the source language, if this repo is a port and the original is available — then trinity's side-by-side view applies to excerpts that have a clear counterpart).
 2. Load the trinity ledger and profile for that language; if no profile, ask the one calibration question trinity specifies, folded into the same message as cognitive-reload's orientation invitation — not a separate turn.
-3. In the orientation, add one line: which language the language layer will teach and how to steer it (`skip`, `weeds`, `surface`).
+3. Start one Proficiency Profile session for both skills: `python3 <cognitive-reload-dir>/scripts/profile_hook.py run session-start --harness <claude-code|codex> --repo .`. Skip the `session-start` and `session-end` steps in both skills; this skill runs each once. If it prints `profile: none`, the profile question goes in the same message as cognitive-reload's orientation invitation, next to trinity's calibration question: one message, and each question asked once.
+4. In the orientation, add one line: which language the language layer will teach and how to steer it (`skip`, `weeds`, `surface`).
 
 Orientation, system diagram, and topic map stay language-light: concepts there are architectural. Language teaching starts at the first code-excerpt rung.
 
@@ -57,10 +58,11 @@ Keep the combined turn readable at chat width; if both layers won't fit, shrink 
 
 ## Gates stay separate
 
-- `fly` (language drill) is not a cognitive-reload assessment and doesn't cross its assessment gate; results go only to the trinity ledger.
+- `fly` (language drill) is not a cognitive-reload assessment and doesn't cross its assessment gate; results go to the trinity ledger and, as Evidence, to the Proficiency Profile.
 - A cognitive-reload teach-back is not a language drill; don't mark concepts `fluent` from it unless the learner wrote target-language code that showed it.
 - Neither starts without the learner asking.
+- Each records its own Evidence, unchanged. Drills record through trinity's hook (`record drill`), and teach-backs through cognitive-reload's (`record teachback`), as each skill describes. Cards and weeds record through trinity's hook too.
 
 ## Checkpoints and pause
 
-At cognitive-reload's checkpoint moments, also batch-update the trinity ledger (concepts loaded/explored/skipped this segment, with anchors and repo name). At pause, give one recap with two short parts — *system model* (cognitive-reload's recap and resume point) and *language* (concepts loaded, skipped, open language questions) — then cognitive-reload's publishing offer. Trinity's ledger is personal and never published with HITL cognition artifacts.
+At cognitive-reload's checkpoint moments, also batch-update the trinity ledger (concepts loaded/explored/skipped this segment, with anchors and repo name). At pause, give one recap with two short parts — *system model* (cognitive-reload's recap and resume point) and *language* (concepts loaded, skipped, open language questions). After the private checkpoint, run `profile_hook.py run session-end` once (cognitive-reload's hook) and add the line it prints to the recap. Then make cognitive-reload's publishing offer. Trinity's ledger is personal and never published with HITL cognition artifacts.

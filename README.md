@@ -278,7 +278,7 @@ Cognitive reload with trinity on this repo. I know the Python original but have 
 
 ### Proficiency Profile
 
-Keeps a developer's private Proficiency Profile: a durable record of what they can do in each Language and Harness, built only from Evidence that Trinity Helicopter Program and Cognitive Reload record. Each piece of Evidence is a trimmed xAPI Statement, appended to a git clone on your machine and committed once per session. It's high-level only: Languages, Areas, Harnesses and generic Concepts, never repository names, code, questions or hosts. Say "off the record" or "don't record in this repo" at any time.
+Keeps a developer's private Proficiency Profile: a durable record of what they can do in each Language and Harness, built only from Evidence that Trinity Helicopter Program and Cognitive Reload record. Each piece of Evidence is a trimmed xAPI Statement, appended to a git clone on your machine and committed once per session. It's high-level only: Languages, Areas, Harnesses and generic Concepts, never repository names, code, questions or hosts. With one approval it also creates a private repo on github.com or gitlab.com and syncs to it. It derives each Concept's level (Introduced, Explored, Practiced, Proven) and its Currency (FSRS-6 bands: Current, Fading, Lapsed), and generates the repo's README. Trinity uses the profile to skip or refresh Concepts, and Cognitive Reload uses it to pitch architecture explanations. Say "show my profile", "off the record" or "don't record in this repo" at any time.
 
 `install-local.sh` in Cognitive Reload installs it alongside by default. Install it on its own:
 

@@ -90,6 +90,7 @@ def main() -> int:
         ROOT / "skills" / "cognitive-reload-with-trinity" / "VERSION",
         ROOT / "skills" / "trinity-helicopter-program" / "VERSION",
         ROOT / "skills" / "trinity-helicopter-program" / "scripts" / "ledger.py",
+        ROOT / "skills" / "trinity-helicopter-program" / "scripts" / "profile_hook.py",
         ROOT / "skills" / "trinity-helicopter-program" / "references" / "languages" / "csharp-dotnet.md",
         ROOT / "scripts" / "test-tmt-agent-deploy.py",
         ROOT / "skills" / "cognitive-reload" / "references" / "architecture-concepts.md",

@@ -18,4 +18,6 @@ Pick one or two per `fly`, anchored on concepts from the session, preferring one
 - Correct but not idiomatic → show the idiomatic version, explain the difference in two or three sentences, leave the status as is.
 - Wrong → explain using the bridge language, then offer one narrower retry. No score shaming; the learner chose to fly.
 
+Record every attempt with its grade (`record drill --grade good|hard|again` in SKILL.md's Recording Evidence): correct and idiomatic is `good`, correct but not idiomatic is `hard`, and wrong is `again`.
+
 Keep it short: at most three questions before pausing. Afterwards restore the cursor and continue the main path.

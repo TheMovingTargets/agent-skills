@@ -14,3 +14,4 @@ jobs:
         with:
           python-version: "3.12"
       - run: npm run validate:skill
+      - run: npm run test:profile

@@ -30,8 +30,8 @@ A learning skill drives these steps:
 
    - Add `--area <id>` only when the code's place in the stack is obvious.
    - The ids come from the Vocabularies: a Trinity pack, Cognitive Reload's `references/architecture-concepts.md`, and this skill's `references/areas.md` and `references/harnesses.md`.
-   - Exit code 3 means an unknown id. That event wasn't recorded, so carry on teaching.
-3. **End.** At the debrief, run `session-end` and put the line it prints into the recap, word for word. If it prints nothing, add nothing. It may end with an offer to add a remote or to link an account; act on it only when the developer says yes.
+   - Pass ids only from the Vocabularies; never invent one. The writer holds any id it doesn't know as Held Evidence, off the Profile Repo, and the debrief lists it.
+3. **End.** At the debrief, run `session-end` and put the line it prints into the recap, word for word. If it prints nothing, add nothing. It may end with held ids to check (below), or an offer to add a remote or to link an account. Act on an offer only when the developer says yes.
 
 The step is done when `session-end` has run once for the session. A skill driving another learning skill runs one lifecycle for both.
 
@@ -61,6 +61,19 @@ When `session-start` prints `profile: none`, fold one question into the first te
 | a recorded line is factually wrong (wrong Concept, wrong person, recorded by mistake) | `lines [--day YYYY-MM-DD]` to find the line's id, then `void <id>`. A changed mind is never a reason to void. |
 
 Confirm each of these to the developer in one line.
+
+## Checking Held Evidence
+
+When the debrief lists held ids, ask the developer about each one: does it name a public technology or pattern, and is it free of the repo's own names (an internal framework, service or package)?
+
+- **No to either:** run `held discard <ref>`. Its lines are dropped.
+- **Yes to both:** run `held confirm <ref>`. It prints a draft Vocabulary PR as JSON: the target `file` in `TheMovingTargets/agent-skills`, a `row` with placeholders (null for a new language pack), a `title` and a `body`. Fill the placeholders in generic wording, then offer to open the PR. Open it only on the developer's yes. After it's open, run `held pr <ref> <url>`.
+
+`held list` shows each ref, its line count and status. The `ref` forms are `concept:<pack or arch>/<id>`, `language:<id>`, `area:<id>` and `harness:<id>`.
+
+Held lines are released at a later `session-start`, once the id is installed: aliased ids are rewritten to their target, and each line keeps its original date. Lines whose PR was closed unmerged are dropped then.
+
+A language pack that Trinity built on the fly follows the same path: saving the pack is the proposal.
 
 ## Linking an account
 

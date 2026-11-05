@@ -48,6 +48,7 @@ class RemoteMachine(Machine):
             FAKE_LOGIN="octo-learner",
             FAKE_ID="1234",
         )
+        env.update(getattr(self, "env_overrides", {}))
         return env
 
     def calls(self) -> list[list[str]]:

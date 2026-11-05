@@ -22,6 +22,11 @@ Optimize for the learner's fluency in the target language, not for coverage of t
 2. Load the learner's profile and concept ledger:
    `python3 <this-skill-dir>/scripts/ledger.py show --lang <target>`
    If no profile exists and the conversation already states their background, save it without asking: `ledger.py profile --lang <target> --knows "rust,java,c++,typescript,python"`. Otherwise ask once, folded into your first teaching message rather than as a turn of its own. If the learner's message is a steering command mid-session (`weeds`, `continue`, a question), answer it first — bridge from whatever the conversation shows they know — and ask about their background at the next pause.
+   Then start the Proficiency Profile session: `python3 <this-skill-dir>/scripts/profile_hook.py run session-start --harness <claude-code|codex> --repo .`
+   - It prints `profile: none`: put the profile question (see the `proficiency-profile` skill) next to the calibration question, in the same message.
+   - It prints `proficiency-profile not found…`: say that line once and carry on. Every later hook is then a silent no-op.
+   - Any other output follows the `proficiency-profile` skill.
+   Calibration stays self-reported in the ledger. Add the languages from `profile_hook.py bridges --lang <target>` (Languages with Practiced or Proven Concepts in the profile) to the learner's known languages when choosing bridges.
 3. Open the language pack for the target: `references/languages/<target>.md` (e.g. `csharp-dotnet.md`). If none exists, build the concept catalog on the fly following `references/languages/README.md`, and offer to save it as a new pack at the end.
 4. Say in one sentence what mode you're in, what you'll teach from, and how to steer (`skip`, `weeds`, `surface`, `continue`). Then start.
 
@@ -31,8 +36,11 @@ For each code excerpt you show (from the port, or from the repo):
 
 1. **Show the code faithfully.** A verbatim, contiguous, line-numbered range, generated mechanically (e.g. `nl -ba <file> | sed -n 'a,bp'`) and pasted as is, original indentation included, even for a single line. Put the `path:start-end` label on its own line *above* the fence, never as a comment inside it: the learner should be able to trust that every line inside a code block is in the file. No elisions, no edits, no injected comments. In a port, show the source excerpt and the target excerpt as two separate faithful blocks. Anything illustrative you write yourself (an analog in the learner's language, a non-idiomatic counter-example) goes in a block explicitly labelled `illustrative — not from the repo`.
 2. **Spot the concepts.** List the target-language concepts the excerpt uses. Look each one up in the ledger.
-3. **Triage against the ledger:**
-   - `known` / `fluent` → say nothing, or a one-word chip if it matters for this excerpt.
+3. **Triage** with `profile_hook.py triage --lang <target> --concepts <ids>`, which weighs the ledger and the profile and returns one word per Concept:
+   - `silence` (ledger `known`/`fluent`, or Proven and Current in the profile) → say nothing, or a one-word chip if it matters for this excerpt.
+   - `refresher` (Practiced or Proven, but Fading or Lapsed) → one line that refreshes it, no card.
+   - `triage` → as below.
+   For `triage` Concepts:
    - Has a near-exact analog in a language the learner knows → a **bridge line**, one sentence: "`using var x` ≈ Rust `let x` with `Drop` at scope end / Java try-with-resources without the braces."
    - Genuinely new, or a false friend (looks like something they know but behaves differently) → a **load card**. False friends always get a card: they're where fluent engineers get burned.
 4. **Cap the load.** At most three cards per excerpt and three bridge lines; list any remaining new concepts as one-line chips the learner can open with `load <concept>`. Aim for a turn the learner can read in two or three minutes (roughly 400–700 words, code included). If it's running longer, show a smaller excerpt — a wall of cards is the failure this skill exists to prevent.
@@ -91,9 +99,20 @@ The ledger is per learner and per target language — not per repo — because f
 
 Use the stable concept ids from the language pack (e.g. `async.valuetask`, `types.nrt`) so progress lines up across sessions and repos. Mark checkpoints after a meaningful segment, at a pause, or on topic switch — never before answering the learner. Storage lives under `${XDG_DATA_HOME:-~/.local/share}/trinity-helicopter-program/` and never in the repo. Run `ledger.py --help` for all commands.
 
+## Recording Evidence
+
+Each teaching event is also Evidence for the Proficiency Profile. Run the hook as the event happens, silently, with the pack's Concept ids:
+
+| Event | Hook |
+|---|---|
+| A card shown | `profile_hook.py run record experienced --lang <t> --concept <id>` |
+| `weeds` reaching rung 2 or deeper | `profile_hook.py run record interacted --lang <t> --concept <id>` |
+| Every `fly` attempt | `profile_hook.py run record drill --lang <t> --concept <id> --grade <good\|hard\|again>`: good is correct and idiomatic, hard is correct but not idiomatic, again is wrong |
+| `skip` | ledger only: nothing goes to the profile, because a self-claim is never Evidence |
+
 ## Pausing or finishing
 
-Give a short debrief: concepts loaded this session (as ids with one-line reminders), what they skipped, open questions, and the exact resume point. Save the ledger. Offer one natural next step (continue the port, a drill on the session's top concept, or a weeds dive they deferred).
+Give a short debrief: concepts loaded this session (as ids with one-line reminders), what they skipped, open questions, and the exact resume point. Save the ledger. Offer one natural next step: if `profile_hook.py refresh --lang <t>` prints a Concept, that one offer is a drill on it; otherwise continue the port, a drill on the session's top concept, or a weeds dive they deferred. Then run `profile_hook.py run session-end` and add the line it prints to the debrief.
 
 ## Boundaries
 

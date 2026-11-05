@@ -33,6 +33,8 @@ import uuid
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
+import derive  # noqa: E402
+import readme  # noqa: E402
 import vocabularies  # noqa: E402
 
 NS = "https://w3id.org/xapi/devprof/"
@@ -378,13 +380,37 @@ def uncommitted_lines() -> list[dict]:
     return lines
 
 
+def all_lines() -> list[dict]:
+    """Every Evidence line, in file order (one file per machine per month)."""
+    lines = []
+    for path in sorted((clone_dir() / "evidence").rglob("*.jsonl")):
+        lines += read_lines(path)
+    return lines
+
+
+def identities() -> list[dict]:
+    profile = json.loads((clone_dir() / "profile.json").read_text(encoding="utf-8"))
+    return profile["identities"]
+
+
+def derived() -> derive.Derived:
+    return derive.derive(all_lines() if profile_exists() else [], today())
+
+
+def regenerate_readme() -> None:
+    (clone_dir() / "README.md").write_text(
+        readme.render(derived(), identities()), encoding="utf-8"
+    )
+
+
 def commit_evidence(label: str | None = None) -> int:
-    """Commit uncommitted Evidence as one commit. Call under the lock."""
+    """Commit uncommitted Evidence and the regenerated README as one commit. Call under the lock."""
     lines = uncommitted_lines()
     if not lines:
         return 0
     day = max(dt.date.fromisoformat(line["timestamp"][:10]) for line in lines)
-    git("add", "--all", "--", "evidence")
+    regenerate_readme()
+    git("add", "--all", "--", "evidence", "README.md")
     git("commit", "-q", "-m", f"Evidence: {len(lines)} lines ({label or day.isoformat()})", day=day)
     return len(lines)
 
@@ -416,10 +442,7 @@ def cmd_create(args) -> int:
             "identities": [{"homePage": HOSTS[args.host], "name": args.login}],
         }
         (clone / "profile.json").write_text(json.dumps(profile, indent=2) + "\n", encoding="utf-8")
-        (clone / "README.md").write_text(
-            "# Proficiency Profile\n\nGenerated from Evidence. Never edit this file by hand.\n",
-            encoding="utf-8",
-        )
+        regenerate_readme()
         git("add", "README.md", "profile.json")
         git("commit", "-q", "-m", "Profile: created", day=today())
         (state_dir() / "declined").unlink(missing_ok=True)
@@ -623,6 +646,55 @@ def cmd_lines(args) -> int:
     return 0
 
 
+def cmd_read(args) -> int:
+    """Levels and Currency as JSON, for a learning skill's triage."""
+    result = derived()
+    out: dict = {"model": derive.MODEL}
+    if not args.lang:
+        out["languages"] = {
+            lang: {"counts": s.counts, "band": s.band, "last_exercised": _iso(s.last)}
+            for lang, s in result.languages.items()
+        }
+        print(json.dumps(out, indent=2, ensure_ascii=False))
+        return 0
+    language = result.languages.get(args.lang)
+    out.update(
+        language=args.lang,
+        counts=language.counts if language else {level: 0 for level in reversed(derive.LEVELS)},
+        band=language.band if language else None,
+        last_exercised=_iso(language.last) if language else None,
+    )
+    concepts = {c: s for (l, c), s in result.concepts.items() if l == args.lang}
+    wanted = [c.strip() for c in args.concepts.split(",")] if args.concepts else sorted(concepts)
+    out["concepts"] = {}
+    for concept in wanted:
+        state = concepts.get(concept)
+        out["concepts"][concept] = {
+            "level": state.level if state else None,
+            "band": state.band if state else None,
+            "last_exercised": _iso(state.last) if state else None,
+        }
+    out["due_for_refresh"] = [
+        c for c, s in sorted(concepts.items())
+        if s.level in ("Practiced", "Proven") and s.band in ("Fading", "Lapsed")
+    ]
+    print(json.dumps(out, indent=2, ensure_ascii=False))
+    return 0
+
+
+def _iso(day: dt.date | None) -> str | None:
+    return day.isoformat() if day else None
+
+
+def cmd_show(args) -> int:
+    """"Show my profile": the README's header and Summary."""
+    if not profile_exists():
+        print("No Proficiency Profile on this machine.")
+        return 0
+    print(readme.summary(derived(), identities()), end="")
+    return 0
+
+
 def cmd_decline(args) -> int:
     state_dir().mkdir(parents=True, exist_ok=True)
     (state_dir() / "declined").write_text(midnight(today()) + "\n", encoding="utf-8")
@@ -678,6 +750,13 @@ def main(argv: list[str] | None = None) -> int:
     lines = commands.add_parser("lines", help="list a day's lines (default today) with their ids")
     lines.add_argument("--day", help="YYYY-MM-DD")
     lines.set_defaults(func=cmd_lines)
+
+    read = commands.add_parser("read", help="levels and Currency as JSON, for triage")
+    read.add_argument("--lang")
+    read.add_argument("--concepts", help="comma-separated Concept ids (default: all)")
+    read.set_defaults(func=cmd_read)
+
+    commands.add_parser("show", help="print the profile summary").set_defaults(func=cmd_show)
 
     commands.add_parser(
         "decline", help="remember that the developer declined a Profile Repo"

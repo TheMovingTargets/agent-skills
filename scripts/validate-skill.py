@@ -70,6 +70,7 @@ def main() -> int:
         ROOT / ".agents" / "plugins" / "marketplace.json",
         ROOT / "skills" / "cognitive-reload" / "scripts" / "progress_store.py",
         ROOT / "skills" / "cognitive-reload" / "scripts" / "export_hitl_cognition.py",
+        ROOT / "skills" / "cognitive-reload" / "scripts" / "profile_hook.py",
         ROOT / "skills" / "doc-pdf-signature-embed" / "VERSION",
         ROOT / "skills" / "doc-pdf-signature-embed" / "requirements.txt",
         ROOT / "skills" / "doc-pdf-signature-embed" / "references" / "config-format.md",

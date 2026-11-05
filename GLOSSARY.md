@@ -53,9 +53,33 @@ _Avoid_: skill level, rating, score (unless it's a specific assessment score)
 How recently a Proficiency has been exercised, and so how much of it can still be relied on.
 _Avoid_: freshness, recency score
 
+**Last Exercised**:
+The most recent date Evidence shows the developer using or recalling something, shown next to its Currency.
+_Avoid_: last seen, last active
+
 **Evidence**:
 A dated record of something the developer did or showed during a session, stated only in Dimensions, Areas and Concepts, from which Proficiency and Currency are derived. It never identifies the repository it came from.
 _Avoid_: activity, log entry, self-assessment, evidence ledger (Cognitive Reload's record of what the agent inspected)
 
 **HITL Cognition Artifact**:
 A sanitized, publishable record from Cognitive Reload showing that a human understands code in a repository. It lives in that repository, never in a Proficiency Profile.
+
+### Proficiency levels
+
+Each Concept, within one Language, holds the highest level its Evidence has ever reached. A later failure lowers Currency, not the level.
+
+**Introduced**:
+The developer has met the Concept, but hasn't yet shown they can recall it.
+_Avoid_: seen, loaded
+
+**Explored**:
+The developer has gone deeper into the Concept than its introduction, without yet showing they can recall it.
+_Avoid_: studied
+
+**Practiced**:
+The developer has recalled the Concept successfully at least once.
+_Avoid_: fluent (Trinity's local ledger status), learned
+
+**Proven**:
+The developer has recalled the Concept well on separate occasions spaced apart, so the command has been retained rather than shown once.
+_Avoid_: mastered, expert, known (a self-claim)

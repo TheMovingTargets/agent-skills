@@ -34,6 +34,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import derive  # noqa: E402
+import hosting  # noqa: E402
 import readme  # noqa: E402
 import vocabularies  # noqa: E402
 
@@ -51,7 +52,6 @@ VERBS = {
 }
 # Fly-drill grades: Good is idiomatic, Hard is correct but not idiomatic.
 GRADES = {"good": (True, 1.0), "hard": (True, 0.5), "again": (False, 0.0)}
-HOSTS = {"github.com": "https://github.com", "gitlab.com": "https://gitlab.com"}
 SCHEMA_VERSION = 1
 
 EXIT_UNKNOWN_ID = 3
@@ -148,26 +148,31 @@ def recording(session: dict | None) -> bool:
 # --- Excluded repos ----------------------------------------------------------
 
 
+def _repo_git(repo: Path, *args: str) -> str:
+    result = subprocess.run(["git", "-C", str(repo), *args], capture_output=True, text=True)
+    return result.stdout.strip() if result.returncode == 0 else ""
+
+
+def repo_remote(repo: Path) -> str:
+    """The repo's `origin` (else first) remote, normalized to `host/path`, or ""."""
+    remotes = _repo_git(repo, "remote").split()
+    if not remotes:
+        return ""
+    name = "origin" if "origin" in remotes else remotes[0]
+    remote = _repo_git(repo, "remote", "get-url", name)
+    return normalize_remote(remote) if remote else ""
+
+
 def repo_key(repo: Path) -> str:
     """A hash naming a repository, from its remote URL, else its path.
 
     Only the hash is stored, so the excluded-repos file names no repository.
     """
-    def git_out(*args: str) -> str:
-        result = subprocess.run(
-            ["git", "-C", str(repo), *args], capture_output=True, text=True
-        )
-        return result.stdout.strip() if result.returncode == 0 else ""
-
-    remotes = git_out("remote").split()
-    remote = ""
-    if remotes:
-        name = "origin" if "origin" in remotes else remotes[0]
-        remote = git_out("remote", "get-url", name)
+    remote = repo_remote(repo)
     if remote:
-        identity = "remote:" + normalize_remote(remote)
+        identity = "remote:" + remote
     else:
-        top = git_out("rev-parse", "--show-toplevel") or str(repo)
+        top = _repo_git(repo, "rev-parse", "--show-toplevel") or str(repo)
         identity = "path:" + str(Path(top).resolve())
     return hashlib.sha256(identity.encode("utf-8")).hexdigest()
 
@@ -195,8 +200,9 @@ def excluded_keys() -> set[str]:
 
 
 def actor() -> dict:
-    profile = json.loads((clone_dir() / "profile.json").read_text(encoding="utf-8"))
-    identity = profile["identities"][0]
+    """The Linked Identity for the session's repo host, else the creation identity (§5)."""
+    session = load_session() or {}
+    identity = hosting.choose_actor(identities(), session.get("repo_kinds", []))
     return {
         "objectType": "Agent",
         "account": {"homePage": identity["homePage"], "name": identity["name"]},
@@ -349,16 +355,20 @@ def discard(ids: set[str]) -> None:
 # --- Git ---------------------------------------------------------------------
 
 
-def git(*args: str, day: dt.date | None = None, check: bool = True) -> str:
-    """Run git in the clone with hooks and signing off, and rounded dates."""
-    env = dict(os.environ)
+def run_git(*args: str, day: dt.date | None = None) -> subprocess.CompletedProcess:
+    """Run git in the clone with hooks, signing and editors off, and rounded dates."""
+    env = dict(os.environ, GIT_EDITOR="true", GIT_TERMINAL_PROMPT="0")
     if day is not None:
         env["GIT_AUTHOR_DATE"] = env["GIT_COMMITTER_DATE"] = midnight(day)
-    result = subprocess.run(
+    return subprocess.run(
         ["git", "-c", "core.hooksPath=/dev/null", "-c", "commit.gpgsign=false",
          "-C", str(clone_dir()), *args],
         capture_output=True, text=True, env=env,
     )
+
+
+def git(*args: str, day: dt.date | None = None, check: bool = True) -> str:
+    result = run_git(*args, day=day)
     if check and result.returncode != 0:
         raise RuntimeError(f"git {' '.join(args)} failed: {result.stderr.strip()}")
     return result.stdout
@@ -415,6 +425,87 @@ def commit_evidence(label: str | None = None) -> int:
     return len(lines)
 
 
+# --- Sync ------------------------------------------------------------------------
+
+
+def has_remote() -> bool:
+    return profile_exists() and "origin" in git("remote", check=False).split()
+
+
+def pull() -> bool:
+    """Fetch and rebase onto the remote, then regenerate the README. False when offline.
+
+    Each machine writes only its own Evidence files, so README.md is the only
+    file that can conflict: it is regenerated from the merged Evidence.
+    """
+    if run_git("fetch", "-q", "origin").returncode != 0:
+        return False
+    if not git("rev-parse", "--verify", "-q", "origin/main", check=False).strip():
+        return True
+    git("checkout", "--", "README.md", check=False)
+    result = run_git("rebase", "--autostash", "--committer-date-is-author-date", "origin/main")
+    while result.returncode != 0:
+        conflicted = set(git("diff", "--name-only", "--diff-filter=U", check=False).split())
+        if not conflicted or conflicted - {"README.md"}:
+            run_git("rebase", "--abort")
+            raise RuntimeError(f"rebase stopped on {sorted(conflicted) or result.stderr.strip()}")
+        regenerate_readme()
+        git("add", "README.md")
+        result = run_git("rebase", "--continue")
+    regenerate_readme()
+    return True
+
+
+def push() -> bool:
+    """Push, rebasing and retrying when rejected. Never forces. False when offline."""
+    for _ in range(3):
+        result = run_git("push", "-q", "-u", "origin", "main")
+        if result.returncode == 0:
+            return True
+        if not re.search(r"rejected|fetch first|non-fast-forward", result.stderr):
+            return False
+        if not pull():
+            return False
+    return False
+
+
+def write_profile_json(profile: dict) -> None:
+    (clone_dir() / "profile.json").write_text(json.dumps(profile, indent=2) + "\n", encoding="utf-8")
+
+
+def read_profile_json() -> dict:
+    return json.loads((clone_dir() / "profile.json").read_text(encoding="utf-8"))
+
+
+def init_local(identity: dict, email: str, home_provider: str | None) -> None:
+    """Create the local clone with its first commit. Call under the lock."""
+    clone_dir().mkdir(parents=True, exist_ok=True)
+    git("init", "-q", "-b", "main")
+    git("config", "user.name", identity["name"])
+    git("config", "user.email", email)
+    write_profile_json({
+        "schema_version": SCHEMA_VERSION,
+        "home_provider": home_provider,
+        "identities": [identity],
+    })
+    regenerate_readme()
+    git("add", "README.md", "profile.json")
+    git("commit", "-q", "-m", "Profile: created", day=today())
+
+
+def connect(provider: hosting.Provider, login: str, user_id: int) -> None:
+    """Create the private remote, set the noreply identity and push. Call under the lock."""
+    url = provider.create(login)
+    git("config", "user.email", provider.noreply(login, user_id))
+    git("remote", "add", "origin", url)
+    git("push", "-q", "-u", "origin", "main")
+
+
+def not_signed_in(provider: hosting.Provider) -> str:
+    return (f"Not signed in to {provider.cli}, so the profile stays on this machine. "
+            f"The developer can run `{provider.cli} auth login`, then say \"add a remote\".")
+
+
 # --- Commands ----------------------------------------------------------------
 
 
@@ -427,29 +518,76 @@ def write_use_line(session: dict) -> None:
 
 
 def cmd_create(args) -> int:
+    """Create the Profile Repo after the developer's one approval.
+
+    With --remote, the private remote is created too, or an existing one is
+    cloned, if the host's CLI is signed in. Otherwise the profile is local-only.
+    """
     if profile_exists():
         print("profile: exists")
         return 0
-    clone = clone_dir()
-    clone.mkdir(parents=True, exist_ok=True)
+    kind = hosting.HOME_PROVIDERS[args.host]
+    provider = hosting.Provider(kind)
+    hint = None
     with locked():
-        git("init", "-q", "-b", "main")
-        git("config", "user.name", args.login)
-        git("config", "user.email", f"{args.login}@localhost")
-        profile = {
-            "schema_version": SCHEMA_VERSION,
-            "home_provider": None,
-            "identities": [{"homePage": HOSTS[args.host], "name": args.login}],
-        }
-        (clone / "profile.json").write_text(json.dumps(profile, indent=2) + "\n", encoding="utf-8")
-        regenerate_readme()
-        git("add", "README.md", "profile.json")
-        git("commit", "-q", "-m", "Profile: created", day=today())
+        if args.remote and provider.signed_in():
+            login, user_id = provider.user()
+            url = provider.repo_url(login)
+            if url:
+                clone_dir().parent.mkdir(parents=True, exist_ok=True)
+                subprocess.run(["git", "clone", "-q", url, str(clone_dir())],
+                               capture_output=True, text=True, check=True)
+                git("config", "user.name", login)
+                git("config", "user.email", provider.noreply(login, user_id))
+            else:
+                init_local(hosting.identity(kind, login), provider.noreply(login, user_id), kind)
+                connect(provider, login, user_id)
+        else:
+            if args.remote:
+                hint = not_signed_in(provider)
+            init_local(hosting.identity(kind, args.login), f"{args.login}@localhost", None)
         (state_dir() / "declined").unlink(missing_ok=True)
         session = load_session()
         if recording(session):
             write_use_line(session)
-    print("profile: local-only")
+    print("profile: remote" if has_remote() else "profile: local-only")
+    if hint:
+        print(hint)
+    return 0
+
+
+def cmd_add_remote(args) -> int:
+    """Connect a local-only profile to a new private remote."""
+    if not profile_exists():
+        print("No Proficiency Profile on this machine.", file=sys.stderr)
+        return 1
+    if has_remote():
+        print("profile: remote")
+        return 0
+    kind = hosting.HOME_PROVIDERS[args.host]
+    provider = hosting.Provider(kind)
+    if not provider.signed_in():
+        print("profile: local-only")
+        print(not_signed_in(provider))
+        return 0
+    with locked():
+        login, user_id = provider.user()
+        if provider.repo_url(login):
+            print(f"A Profile Repo already exists on {provider.label}; this machine's profile "
+                  "stays local. Move this clone aside and create again to use that one.",
+                  file=sys.stderr)
+            return 1
+        profile = read_profile_json()
+        profile["home_provider"] = kind
+        account = hosting.identity(kind, login)
+        if account not in profile["identities"]:
+            profile["identities"].append(account)
+        write_profile_json(profile)
+        regenerate_readme()
+        git("add", "profile.json", "README.md")
+        git("commit", "-q", "-m", f"Profile: Home Provider {kind}", day=today())
+        connect(provider, login, user_id)
+    print("profile: remote")
     return 0
 
 
@@ -461,21 +599,27 @@ def cmd_session_start(args) -> int:
         return EXIT_UNKNOWN_ID
     repo = Path(args.repo or ".").resolve()
     excluded = repo_key(repo) in excluded_keys()
+    host = repo_remote(repo).partition("/")[0]
+    session = {
+        "harness": harness,
+        "repo": repo_key(repo),
+        "repo_kinds": hosting.repo_kinds(host),
+        "excluded": excluded,
+        "off_record": False,
+        "lines": [],
+    }
     with locked():
-        if profile_exists():
+        if not excluded and profile_exists():
             commit_evidence("recovered")
-        session = {
-            "harness": harness,
-            "repo": repo_key(repo),
-            "excluded": excluded,
-            "off_record": False,
-            "lines": [],
-        }
+            if has_remote():
+                session["offline"] = not pull()
         save_session(session)
         if recording(session):
             write_use_line(session)
     if excluded:
         print("profile: excluded")
+    elif has_remote():
+        print("profile: remote")
     elif profile_exists():
         print("profile: local-only")
     elif (state_dir() / "declined").exists():
@@ -564,18 +708,59 @@ def cmd_session_end(args) -> int:
         return 0
     with locked():
         count = commit_evidence() if recording(session) else 0
+        pushed = push() if has_remote() else None
         session_file().unlink(missing_ok=True)
     if session.get("excluded"):
         print("Profile: not recorded, this repo is excluded.")
-    elif session.get("off_record"):
+        return 0
+    if session.get("off_record"):
         print("Profile: off the record, nothing recorded this session.")
-    elif not profile_exists():
-        pass
-    elif count:
-        print(f"Profile: {count} lines recorded, kept on this machine only.")
+        return 0
+    if not profile_exists():
+        return 0
+    if pushed is None:
+        where = "kept on this machine only."
+    elif pushed:
+        where = "pushed."
     else:
-        print("Profile: nothing new recorded.")
+        where = "kept on this machine until it can sync."
+    if not count:
+        line = "Profile: nothing new recorded." + (
+            "" if pushed is not False else " It will sync when this machine is back online.")
+    elif pushed:
+        line = f"Profile: {count} lines recorded and pushed."
+    else:
+        line = f"Profile: {count} lines recorded, {where}"
+    print(" ".join([line, *debrief_offers(session, offer_remote=pushed is None)]))
     return 0
+
+
+def debrief_offers(session: dict, offer_remote: bool) -> list[str]:
+    """At most one offer to add a remote, and a one-time offer to link this host's account."""
+    offers = []
+    home = hosting.kind_of(identities()[0])
+    if offer_remote and home in ("github", "gitlab"):
+        provider = hosting.Provider(home)
+        if provider.signed_in():
+            offers.append(f"It can be backed up to a private {provider.label} repo: "
+                          "say \"add a remote\".")
+    kinds = session.get("repo_kinds", [])
+    linked = {hosting.kind_of(record) for record in identities()}
+    offered_file = state_dir() / "link-offers"
+    try:
+        offered = set(offered_file.read_text(encoding="utf-8").split())
+    except OSError:
+        offered = set()
+    if kinds and not linked & set(kinds) and kinds[0] not in offered:
+        label = hosting.LABELS[kinds[0]]
+        offers.append(f"Work here is under an {label} account that isn't linked: "
+                      f"say \"link my {label} account\" to count it as yours."
+                      if label[0] in "AEIOU" else
+                      f"Work here is under a {label} account that isn't linked: "
+                      f"say \"link my {label} account\" to count it as yours.")
+        with open(offered_file, "a", encoding="utf-8") as handle:
+            handle.write(kinds[0] + "\n")
+    return offers
 
 
 def stop_recording(session: dict, flag: str) -> None:
@@ -695,6 +880,38 @@ def cmd_show(args) -> int:
     return 0
 
 
+def cmd_link(args) -> int:
+    """Record a Linked Identity, so work under that account counts toward this profile."""
+    if not profile_exists():
+        print("No Proficiency Profile on this machine.", file=sys.stderr)
+        return 1
+    try:
+        account = hosting.identity(args.kind, args.name, args.display)
+    except ValueError as exc:
+        print(f"not linked: {exc}", file=sys.stderr)
+        return 2
+    with locked():
+        profile = read_profile_json()
+        if account not in profile["identities"]:
+            profile["identities"].append(account)
+            write_profile_json(profile)
+            regenerate_readme()
+            git("add", "profile.json", "README.md")
+            git("commit", "-q", "-m", "Profile: Linked Identity added", day=today())
+    print(f"Profile: linked {readme.identity_label(account)}.")
+    return 0
+
+
+def cmd_sync(args) -> int:
+    if not has_remote():
+        print("Profile: kept on this machine only, nothing to sync.")
+        return 0
+    with locked():
+        synced = pull() and push()
+    print("Profile: synced." if synced else "Profile: offline, kept on this machine until it can sync.")
+    return 0
+
+
 def cmd_decline(args) -> int:
     state_dir().mkdir(parents=True, exist_ok=True)
     (state_dir() / "declined").write_text(midnight(today()) + "\n", encoding="utf-8")
@@ -707,9 +924,25 @@ def main(argv: list[str] | None = None) -> int:
     commands = parser.add_subparsers(dest="command", required=True)
 
     create = commands.add_parser("create", help="create the local Profile Repo, after the developer's approval")
-    create.add_argument("--host", choices=sorted(HOSTS), required=True)
-    create.add_argument("--login", required=True)
+    create.add_argument("--host", choices=sorted(hosting.HOME_PROVIDERS), required=True)
+    create.add_argument("--login", required=True,
+                        help="the account login; with --remote, the signed-in CLI's login wins")
+    create.add_argument("--remote", action="store_true",
+                        help="also create the private remote, or clone an existing one")
     create.set_defaults(func=cmd_create)
+
+    add_remote = commands.add_parser("add-remote", help="connect a local-only profile to a private remote")
+    add_remote.add_argument("--host", choices=sorted(hosting.HOME_PROVIDERS), required=True)
+    add_remote.set_defaults(func=cmd_add_remote)
+
+    link = commands.add_parser("link", help="record a Linked Identity")
+    link.add_argument("--kind", choices=sorted(hosting.KINDS), required=True)
+    link.add_argument("--name", required=True,
+                      help="login, or the Azure DevOps profile id GUID")
+    link.add_argument("--display", help="Azure DevOps display name")
+    link.set_defaults(func=cmd_link)
+
+    commands.add_parser("sync", help="pull, then push").set_defaults(func=cmd_sync)
 
     start = commands.add_parser("session-start", help="begin a recording session")
     start.add_argument("--harness", required=True)

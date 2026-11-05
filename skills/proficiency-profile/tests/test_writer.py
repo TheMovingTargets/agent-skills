@@ -49,13 +49,13 @@ class Machine:
         self.root = root
         self.today = today
         self.home = root / "home"
-        self.home.mkdir(parents=True)
+        self.home.mkdir(parents=True, exist_ok=True)
         self.gitconfig = root / "gitconfig"
         self.gitconfig.write_text("", encoding="utf-8")
         self.clone = root / "data" / "proficiency-profile"
         self.state = root / "state" / "proficiency-profile"
         self.config = root / "config" / "proficiency-profile"
-        self.repo = self.work_repo("work", "https://example.invalid/team/app.git")
+        self.repo = self.work_repo("work", "https://github.com/example-team/app.git")
 
     def env(self) -> dict[str, str]:
         env = {
@@ -343,8 +343,8 @@ class ExcludedRepos(MachineTest):
         m = self.machine
         m.create()
         m.run("exclude-repo", "--repo", str(m.repo))
-        for name, remote in (("ssh", "git@example.invalid:team/app.git"),
-                             ("https", "https://user@Example.invalid/team/app/")):
+        for name, remote in (("ssh", "git@github.com:example-team/app.git"),
+                             ("https", "https://user@GitHub.com/example-team/app/")):
             other = m.work_repo(name, remote)
             self.assertEqual(m.start(repo=other).stdout.strip(), "profile: excluded")
 
@@ -352,7 +352,7 @@ class ExcludedRepos(MachineTest):
         m = self.machine
         m.create()
         m.run("exclude-repo", "--repo", str(m.repo))
-        other = m.work_repo("other", "https://example.invalid/team/other.git")
+        other = m.work_repo("other", "https://github.com/example-team/other.git")
         self.assertEqual(m.start(repo=other).stdout.strip(), "profile: local-only")
         self.assertEqual(len(m.lines()), 1)
 
@@ -485,7 +485,7 @@ class WithoutAProfile(MachineTest):
         m.run("session-end")
         files = [p for p in m.clone.rglob("*") if p.is_file() and ".git" not in p.parts]
         text = "".join(p.read_text() for p in files)
-        for leak in ("example.invalid", "team", "work", str(m.root)):
+        for leak in ("example-team", "app.git", "work", str(m.root)):
             self.assertNotIn(leak, text)
 
 

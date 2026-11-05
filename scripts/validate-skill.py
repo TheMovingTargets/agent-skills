@@ -12,6 +12,7 @@ SKILLS = {
     "cognitive-reload": ROOT / "skills" / "cognitive-reload",
     "cognitive-reload-with-trinity": ROOT / "skills" / "cognitive-reload-with-trinity",
     "doc-pdf-signature-embed": ROOT / "skills" / "doc-pdf-signature-embed",
+    "proficiency-profile": ROOT / "skills" / "proficiency-profile",
     "tmt-agent-deploy": ROOT / "skills" / "tmt-agent-deploy",
     "tmt-codex-code-review": ROOT / "skills" / "tmt-codex-code-review",
     "tmt-codex-plan-review": ROOT / "skills" / "tmt-codex-plan-review",
@@ -95,6 +96,8 @@ def main() -> int:
         ROOT / "skills" / "proficiency-profile" / "references" / "areas.md",
         ROOT / "skills" / "proficiency-profile" / "references" / "harnesses.md",
         ROOT / "skills" / "proficiency-profile" / "scripts" / "vocabularies.py",
+        ROOT / "skills" / "proficiency-profile" / "scripts" / "profile.py",
+        ROOT / "skills" / "proficiency-profile" / "VERSION",
     ]
     errors.extend(
         f"missing required file: {path}" for path in required if not path.exists()

@@ -2,7 +2,7 @@
 set -eu
 
 usage() {
-  printf '%s\n' "Usage: $0 <repository-path> [claude|codex|opencode|pi|all] [--native] [--with-kroki] [--kroki-port PORT] [--uninstall]"
+  printf '%s\n' "Usage: $0 <repository-path> [claude|codex|opencode|pi|all] [--native] [--without-profile] [--with-kroki] [--kroki-port PORT] [--uninstall]"
   printf '%s\n' ""
   printf '%s\n' "Harnesses map onto two install paths:"
   printf '%s\n' "  claude                    -> .claude/skills/cognitive-reload"
@@ -11,6 +11,8 @@ usage() {
   printf '%s\n' ""
   printf '%s\n' "  --native      also write the harness-specific dirs (.codex/skills, .opencode/skills, .pi/skills)"
   printf '%s\n' "                for users who disabled the shared .agents path"
+  printf '%s\n' "  --without-profile  skip the proficiency-profile skill, which is installed alongside by default"
+  printf '%s\n' "                when it sits next to this skill"
   printf '%s\n' "  --with-kroki  start the optional local (private) PNG renderer; NOT required for diagrams,"
   printf '%s\n' "                which default to a native Mermaid fence (an inline widget in the Claude desktop app)"
   printf '%s\n' "  --uninstall   remove the skill from the same target/--native paths instead of installing;"
@@ -28,10 +30,13 @@ repo=$1
 shift
 target=all
 native=false
+profile=true
 kroki=false
 uninstall=false
 kroki_port=${COGNITIVE_RELOAD_KROKI_PORT:-8990}
-source_dir=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
+skill_dir=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
+source_dir=$skill_dir
+profile_dir=$(CDPATH= cd -- "$skill_dir/../proficiency-profile" 2>/dev/null && pwd || true)
 
 if [ "$#" -gt 0 ]; then
   case "$1" in
@@ -46,6 +51,10 @@ while [ "$#" -gt 0 ]; do
   case "$1" in
     --native)
       native=true
+      shift
+      ;;
+    --without-profile)
+      profile=false
       shift
       ;;
     --with-kroki)
@@ -95,7 +104,9 @@ fi
 
 install_to() {
   parent=$1
-  destination="$repo/$parent/cognitive-reload"
+  name=${2:-cognitive-reload}
+  source_dir=${3:-$skill_dir}
+  destination="$repo/$parent/$name"
   destination_parent=$(CDPATH= cd -- "$(dirname -- "$destination")" 2>/dev/null && pwd || true)
   if [ -n "$destination_parent" ] && [ "$destination_parent/$(basename -- "$destination")" = "$source_dir" ]; then
     printf 'Already installed in %s\n' "$destination"
@@ -103,12 +114,14 @@ install_to() {
   fi
   mkdir -p "$destination"
   cp -R "$source_dir/." "$destination/"
-  printf 'Installed cognitive-reload in %s\n' "$destination"
+  printf 'Installed %s in %s\n' "$name" "$destination"
 }
 
 uninstall_from() {
   parent=$1
-  destination="$repo/$parent/cognitive-reload"
+  name=${2:-cognitive-reload}
+  source_dir=${3:-$skill_dir}
+  destination="$repo/$parent/$name"
   # Safety: never delete the source checkout this installer is being run from.
   # Compare physically resolved paths so a symlinked destination cannot alias the source.
   destination_real=$(CDPATH= cd -- "$destination" 2>/dev/null && pwd -P || true)
@@ -122,7 +135,7 @@ uninstall_from() {
     return
   fi
   rm -rf "$destination"
-  printf 'Removed cognitive-reload from %s\n' "$destination"
+  printf 'Removed %s from %s\n' "$name" "$destination"
   # Best-effort tidy: drop the skills dir and its harness dotdir only while they are empty.
   rmdir "$repo/$parent" 2>/dev/null || true
   case "$parent" in
@@ -133,11 +146,19 @@ uninstall_from() {
 }
 
 # One entry point for both directions so install and uninstall always touch the same paths.
+# The proficiency-profile skill rides along when it sits next to this skill.
 apply_to() {
   if [ "$uninstall" = true ]; then
     uninstall_from "$1"
   else
     install_to "$1"
+  fi
+  if [ "$profile" = true ] && [ -n "$profile_dir" ]; then
+    if [ "$uninstall" = true ]; then
+      uninstall_from "$1" proficiency-profile "$profile_dir"
+    else
+      install_to "$1" proficiency-profile "$profile_dir"
+    fi
   fi
 }
 
@@ -180,5 +201,5 @@ if [ "$native" = true ]; then
 fi
 
 if [ "$kroki" = true ]; then
-  "$source_dir/scripts/kroki-local.sh" start "$kroki_port"
+  "$skill_dir/scripts/kroki-local.sh" start "$kroki_port"
 fi

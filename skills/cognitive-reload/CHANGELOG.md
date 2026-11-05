@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.9.2 - 2026-11-05
+
+- `install-local.sh` installs the `proficiency-profile` skill alongside Cognitive Reload when it sits next to it. `--without-profile` skips it, and `--uninstall` removes both.
+- Add `references/architecture-concepts.md`, the Vocabulary of 18 generic architecture patterns that a scored teach-back can record in a Proficiency Profile. Nothing reads it yet.
+
 ## 0.9.1 - 2026-10-21
 
 - Write PNG badges for Azure DevOps repositories, which do not display SVG images in Markdown: `--badge-format auto` (default) draws PNG badges with PyMuPDF when it is installed and points the README block and `current.md` at them, sized with Azure DevOps' `=WxH` syntax. SVG badges are always written; other hosts keep using them.

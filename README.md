@@ -276,6 +276,17 @@ To reload a repository and learn its language at the same time:
 Cognitive reload with trinity on this repo. I know the Python original but have never written C#.
 ```
 
+### Proficiency Profile
+
+Keeps a developer's private Proficiency Profile: a durable record of what they can do in each Language and Harness, built only from Evidence that Trinity Helicopter Program and Cognitive Reload record. Each piece of Evidence is a trimmed xAPI Statement, appended to a git clone on your machine and committed once per session. It's high-level only: Languages, Areas, Harnesses and generic Concepts, never repository names, code, questions or hosts. Say "off the record" or "don't record in this repo" at any time.
+
+`install-local.sh` in Cognitive Reload installs it alongside by default. Install it on its own:
+
+```bash
+npx skills@latest add TheMovingTargets/agent-skills \
+  --skill proficiency-profile
+```
+
 ## Privacy
 
 Cognitive Reload stores private learner progress locally by default, outside the target repository. Public HITL exports exclude GitHub login, raw learner questions, and raw assessment answers.
@@ -283,6 +294,8 @@ Cognitive Reload stores private learner progress locally by default, outside the
 The skill should not write repository files unless the user approves a publish or export step.
 
 TMT Agent Deploy stores repository-specific configuration, state, and sanitized run summaries under the gitignored `.tmt-agent-deploy/` directory. It prohibits secrets in that directory and stores only credential paths or references.
+
+Proficiency Profile keeps its Profile Repo under `${XDG_DATA_HOME:-~/.local/share}/proficiency-profile/` and its machine id, lock and session state under `${XDG_STATE_HOME:-~/.local/state}/proficiency-profile/`. The Profile Repo holds only Statements about Languages, Areas, Harnesses and generic Concepts, with timestamps and commit dates rounded to midnight UTC. Excluded repos are stored only as hashes of their remote URLs.
 
 Trinity Helicopter Program stores its concept ledger and port flight logs locally under `${XDG_DATA_HOME:-~/.local/share}/trinity-helicopter-program/`, outside any repository, and never publishes them.
 
@@ -325,6 +338,12 @@ skills/
   cognitive-reload-with-trinity/
     SKILL.md
     agents/
+  proficiency-profile/
+    SKILL.md
+    agents/
+    references/
+    scripts/
+    tests/
 .claude-plugin/
   plugin.json
 .codex-plugin/

@@ -39,6 +39,9 @@ Treat "standard first time reload" as `first_time`, not as a recent-diff review.
 1. Resolve the target ref without modifying the checkout.
 2. Run the bundled `scripts/progress_store.py identity --repo .` to resolve the learner (GitHub login, or Azure DevOps account for Azure DevOps remotes) and repository identity.
 3. Run the bundled `scripts/progress_store.py get --repo .` to load this learner's progress when available.
+   Then start the Proficiency Profile session: `python3 <this-skill-dir>/scripts/profile_hook.py run session-start --harness <claude-code|codex> --repo .`. Evidence is recorded under the learner's Linked Identity for this repo's host, which is the same account step 2 resolved.
+   - It prints `profile: none`: fold the profile question (see the `proficiency-profile` skill) into the orientation invitation. It's never a turn of its own.
+   - It prints `proficiency-profile not found…`: say that line once and carry on. Every later hook is then a silent no-op.
 4. Inspect repository-level evidence: README, architecture docs, manifests, top-level tree, service entry points, and representative tests. Use Git evidence from the target ref.
 5. Determine mode and say in one sentence whether this is a new or resumed learning path.
 
@@ -65,7 +68,14 @@ Bare `continue` and `next` are synonyms for executing the saved `advance`. Do no
 
 ## Topic teaching loop
 
-Teach one topic at a time:
+Teach one topic at a time. Tutoring records nothing in the Proficiency Profile.
+
+Before explaining a pattern listed in [references/architecture-concepts.md](references/architecture-concepts.md), run `profile_hook.py pitch --lang <the code's language pack> --concepts <ids>` once per topic:
+- `name`: the learner has it Proven and Current. Name the pattern and skip the primer.
+- `refresher`: it's Lapsed. Give a brief refresher.
+- `primer`: explain it as usual.
+
+The pitch never skips repo-specific teaching and never affects scoring.
 
 1. State why the topic exists and how it connects to the system map.
 2. Follow `references/diagram-first-teaching.md` to show its flow, boundaries, or state changes.
@@ -116,7 +126,8 @@ When the learner pauses or time runs out:
 1. Recap the mental model built and unresolved questions.
 2. State the exact resume point.
 3. Complete a private checkpoint.
-4. Offer HITL cognition publishing when local progress exists.
+4. Run `profile_hook.py run session-end` and add the line it prints to the recap.
+5. Offer HITL cognition publishing when local progress exists.
 
 Pause is complete when the learner has the recap and resume point, progress is persisted or explicitly session-only, and the publishing offer is resolved. Do not force assessment or manufacture a repository-wide score.
 

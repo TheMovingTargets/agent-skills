@@ -36,6 +36,19 @@ Use 0-5 only for an assessed topic:
 
 Agent-handoff readiness begins at 4, but always record the dimensions and attempt evidence, not just the number.
 
+## Recording the teach-back as Evidence
+
+After scoring an area, record it in the Proficiency Profile:
+
+```text
+python3 <this-skill-dir>/scripts/profile_hook.py run record teachback --lang <pack> --concepts <ids> --score <area score> [--area <id>]
+```
+
+- `--concepts` takes only the generic Architecture Concepts the teach-back exercised, mapped from the topic onto [architecture-concepts.md](architecture-concepts.md). If nothing fits, record nothing. Never invent an id, and never name one after the repo's own code.
+- `--lang` is the code's Language: the Trinity language pack id, for example `csharp-dotnet`.
+- Add `--area` only when the code's place in the stack is obvious.
+- The writer turns the score into `passed` (3.0 or above) or `failed`, with `score.scaled` = score / 5. It never changes the score you give.
+
 ## Retakes
 
 Preserve each attempt. Offer a narrow retake for the missed concept. After giving the answer directly, allow a later retake but mark it `assisted`; do not pretend it was independent recall.

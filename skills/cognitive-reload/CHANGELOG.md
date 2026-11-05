@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.10.0 - 2026-11-05
+
+- Record scored teach-backs in the learner's Proficiency Profile when the `proficiency-profile` skill is installed. Each generic Architecture Concept the teach-back exercised becomes a `passed` or `failed` line with `score.scaled` = area score / 5. Tutoring records nothing.
+- Start the profile session at orientation, after `progress_store.py identity` and `get`. The profile question is folded into the orientation invitation. The pause runs `session-end` after the private checkpoint and before the publishing offer, and adds its line to the recap.
+- Pitch architecture explanations from the profile with `scripts/profile_hook.py pitch`: name a Proven and Current pattern and skip its primer, or give a brief refresher for a Lapsed one. The profile never affects scoring or repo-specific teaching.
+- Without the profile skill, `profile_hook.py` says so once at session start, and Cognitive Reload works as before.
+
 ## 0.9.2 - 2026-11-05
 
 - `install-local.sh` installs the `proficiency-profile` skill alongside Cognitive Reload when it sits next to it. `--without-profile` skips it, and `--uninstall` removes both.

@@ -91,6 +91,10 @@ def main() -> int:
         ROOT / "skills" / "trinity-helicopter-program" / "scripts" / "ledger.py",
         ROOT / "skills" / "trinity-helicopter-program" / "references" / "languages" / "csharp-dotnet.md",
         ROOT / "scripts" / "test-tmt-agent-deploy.py",
+        ROOT / "skills" / "cognitive-reload" / "references" / "architecture-concepts.md",
+        ROOT / "skills" / "proficiency-profile" / "references" / "areas.md",
+        ROOT / "skills" / "proficiency-profile" / "references" / "harnesses.md",
+        ROOT / "skills" / "proficiency-profile" / "scripts" / "vocabularies.py",
     ]
     errors.extend(
         f"missing required file: {path}" for path in required if not path.exists()

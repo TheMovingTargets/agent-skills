@@ -7,6 +7,7 @@
   "scripts": {
     "validate:skill": "python3 scripts/validate-skill.py",
     "validate:exporter": "python3 skills/cognitive-reload/scripts/export_hitl_cognition.py --help >/dev/null",
-    "test:deploy": "python3 scripts/test-tmt-agent-deploy.py"
+    "test:deploy": "python3 scripts/test-tmt-agent-deploy.py",
+    "test:profile": "python3 -m unittest discover -s skills/proficiency-profile/tests -p 'test_*.py'"
   }
 }

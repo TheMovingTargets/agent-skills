@@ -45,7 +45,8 @@ USE_CLAUDE_CODE = {
 class Machine:
     """One developer machine: its own XDG folders, HOME, git config and repo."""
 
-    def __init__(self, root: Path, today: str = "2026-11-05"):
+    def __init__(self, root: Path, today: str = "2026-11-05", profile: Path = PROFILE):
+        self.profile = profile
         self.root = root
         self.today = today
         self.home = root / "home"
@@ -90,7 +91,7 @@ class Machine:
 
     def run(self, *args: str, check: bool = True) -> subprocess.CompletedProcess:
         result = subprocess.run(
-            [sys.executable, str(PROFILE), *args],
+            [sys.executable, str(self.profile), *args],
             capture_output=True, text=True, env=self.env(), cwd=self.root,
         )
         if check and result.returncode != 0:
@@ -375,7 +376,9 @@ class Recovery(MachineTest):
 
 
 class VocabularyCheck(MachineTest):
-    def test_unknown_ids_are_rejected(self):
+    """Unknown ids never reach the Profile Repo. Holding them is tested in test_held.py."""
+
+    def test_unknown_ids_are_kept_out_of_the_profile(self):
         m = self.machine
         m.create()
         m.start()
@@ -386,27 +389,17 @@ class VocabularyCheck(MachineTest):
              "--grade", "good", "--area", "gamedev"],
             ["experienced", "--lang", "csharp-dotnet", "--concept", "cqrs"],
         ):
-            result = m.run("record", *args, check=False)
-            self.assertEqual(result.returncode, 3, args)
-            self.assertIn("not recorded", result.stderr)
+            self.assertEqual(m.run("record", *args).returncode, 0, args)
         self.assertEqual(len(m.lines()), 1)
 
-    def test_teachback_records_known_concepts_and_rejects_unknown_ones(self):
+    def test_teachback_records_known_concepts_and_keeps_unknown_ones_out(self):
         m = self.machine
         m.create()
         m.start()
-        result = m.run("record", "teachback", "--lang", "csharp-dotnet",
-                       "--concepts", "cqrs,our-internal-bus", "--score", "4", check=False)
-        self.assertEqual(result.returncode, 3)
+        m.run("record", "teachback", "--lang", "csharp-dotnet",
+              "--concepts", "cqrs,our-internal-bus", "--score", "4")
         self.assertEqual([line["object"]["id"] for line in m.lines()[1:]],
                          [NS + "concepts/arch/cqrs"])
-
-    def test_unknown_harness_is_rejected(self):
-        m = self.machine
-        m.create()
-        result = m.run("session-start", "--harness", "notepad", "--repo", str(m.repo), check=False)
-        self.assertEqual(result.returncode, 3)
-        self.assertEqual(m.lines(), [])
 
 
 class Voids(MachineTest):

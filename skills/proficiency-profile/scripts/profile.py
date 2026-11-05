@@ -34,6 +34,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import derive  # noqa: E402
+import held  # noqa: E402
 import hosting  # noqa: E402
 import readme  # noqa: E402
 import vocabularies  # noqa: E402
@@ -321,23 +322,66 @@ def already_today(verb: str, object_iri: str) -> bool:
     )
 
 
-def append(session: dict, statements: list[dict]) -> None:
-    """Append complete lines to this machine's file for the current month.
+def append(session: dict | None, statements: list[dict]) -> None:
+    """Append complete lines to this machine's file for each line's own month.
 
-    Call under the lock. The session remembers each line's id, so it can
-    count them at the debrief and discard them when going off the record.
+    Call under the lock. A session remembers each line's id, so it can count
+    them at the debrief and discard them when going off the record. Released
+    Held Evidence is appended with no session.
     """
-    if not statements:
+    by_month: dict[Path, list[dict]] = {}
+    for st in statements:
+        day = dt.date.fromisoformat(st["timestamp"][:10])
+        by_month.setdefault(month_dir(day) / f"{machine_id()}.jsonl", []).append(st)
+    for path, group in by_month.items():
+        path.parent.mkdir(parents=True, exist_ok=True)
+        payload = "".join(json.dumps(st, separators=(",", ":")) + "\n" for st in group)
+        with open(path, "a", encoding="utf-8") as handle:
+            handle.write(payload)
+            handle.flush()
+            os.fsync(handle.fileno())
+    if session is not None and statements:
+        session.setdefault("lines", []).extend(st["id"] for st in statements)
+        save_session(session)
+
+
+def held_queue() -> held.Queue:
+    return held.Queue(state_dir() / "held.json")
+
+
+def record_or_hold(session: dict, statements: list[dict], vocab) -> list[dict]:
+    """Append Statements whose ids are installed; hold the rest. Call under the lock.
+
+    Aliased ids are rewritten to their targets first. Returns the appended ones.
+    """
+    queue = held_queue()
+    ready, held_ids = [], []
+    for st in statements:
+        st, unknown = held.resolve_statement(st, vocab)
+        if unknown:
+            queue.hold(st, unknown)
+            held_ids.append(st["id"])
+        else:
+            ready.append(st)
+    if held_ids:
+        queue.save()
+        session.setdefault("lines", []).extend(held_ids)
+        save_session(session)
+    append(session, ready)
+    return ready
+
+
+def release_held(vocab) -> None:
+    """Drop lines whose proposal PR was closed unmerged, and release installed ones. Call under the lock."""
+    queue = held_queue()
+    if not queue.lines:
         return
-    path = month_dir(today()) / f"{machine_id()}.jsonl"
-    path.parent.mkdir(parents=True, exist_ok=True)
-    payload = "".join(json.dumps(st, separators=(",", ":")) + "\n" for st in statements)
-    with open(path, "a", encoding="utf-8") as handle:
-        handle.write(payload)
-        handle.flush()
-        os.fsync(handle.fileno())
-    session.setdefault("lines", []).extend(st["id"] for st in statements)
-    save_session(session)
+    for entry in queue.listing():
+        if entry["status"] == "proposed" and entry.get("pr"):
+            if hosting.pr_state(entry["pr"]) == "CLOSED":
+                queue.drop_ref(entry["ref"])
+    append(None, queue.release(vocab))
+    queue.save()
 
 
 def discard(ids: set[str]) -> None:
@@ -509,12 +553,12 @@ def not_signed_in(provider: hosting.Provider) -> str:
 # --- Commands ----------------------------------------------------------------
 
 
-def write_use_line(session: dict) -> None:
+def write_use_line(session: dict, vocab=None) -> None:
     """The day's Harness `use` line, once per Harness per day. Call under the lock."""
     iri = NS + "harnesses/" + session["harness"]
     if not already_today("use", iri):
-        append(session, [statement("use", iri, "harness",
-                                   result={"success": True, "score": {"scaled": 1.0}})])
+        use = statement("use", iri, "harness", result={"success": True, "score": {"scaled": 1.0}})
+        record_or_hold(session, [use], vocab or vocabularies.load())
 
 
 def cmd_create(args) -> int:
@@ -593,10 +637,7 @@ def cmd_add_remote(args) -> int:
 
 def cmd_session_start(args) -> int:
     vocab = vocabularies.load()
-    harness = vocab.resolve("harness", args.harness)
-    if harness is None:
-        print(f"unknown Harness {args.harness!r}", file=sys.stderr)
-        return EXIT_UNKNOWN_ID
+    harness = vocab.resolve("harness", args.harness) or args.harness
     repo = Path(args.repo or ".").resolve()
     excluded = repo_key(repo) in excluded_keys()
     host = repo_remote(repo).partition("/")[0]
@@ -613,9 +654,10 @@ def cmd_session_start(args) -> int:
             commit_evidence("recovered")
             if has_remote():
                 session["offline"] = not pull()
+            release_held(vocab)
         save_session(session)
         if recording(session):
-            write_use_line(session)
+            write_use_line(session, vocab)
     if excluded:
         print("profile: excluded")
     elif has_remote():
@@ -629,27 +671,6 @@ def cmd_session_start(args) -> int:
     return 0
 
 
-def resolve_or_report(vocab, kind: str, id_: str, scope: str | None = None) -> str | None:
-    resolved = vocab.resolve(kind, id_, scope)
-    if resolved is None:
-        where = f" in {scope}" if scope else ""
-        print(f"not recorded: unknown {kind} {id_!r}{where}", file=sys.stderr)
-    return resolved
-
-
-def language_categories(vocab, args) -> list[str] | None:
-    lang = resolve_or_report(vocab, "language", args.lang)
-    if lang is None:
-        return None
-    categories = [NS + "languages/" + lang]
-    if args.area:
-        area = resolve_or_report(vocab, "area", args.area)
-        if area is None:
-            return None
-        categories.append(NS + "areas/" + area)
-    return categories
-
-
 def cmd_record(args) -> int:
     session = load_session()
     if session is None:
@@ -658,17 +679,11 @@ def cmd_record(args) -> int:
     if not recording(session):
         return 0
     vocab = vocabularies.load()
-    categories = language_categories(vocab, args)
-    if categories is None:
-        return EXIT_UNKNOWN_ID
-    lang = categories[0].rsplit("/", 1)[1]
-    status = 0
+    lang = vocab.resolve("language", args.lang) or args.lang
+    categories = [NS + "languages/" + lang] + ([NS + "areas/" + args.area] if args.area else [])
     statements: list[dict] = []
     if args.event in ("experienced", "interacted", "drill"):
-        concept = resolve_or_report(vocab, "concept", args.concept, lang)
-        if concept is None:
-            return EXIT_UNKNOWN_ID
-        iri = f"{NS}concepts/{lang}/{concept}"
+        iri = f"{NS}concepts/{lang}/{args.concept}"
         if args.event == "drill":
             success, scaled = GRADES[args.grade]
             statements.append(statement("practiced", iri, "language", categories,
@@ -679,26 +694,21 @@ def cmd_record(args) -> int:
         scaled = round(args.score / 5, 4)
         verb = "passed" if args.score >= 3.0 else "failed"
         for name in [c.strip() for c in args.concepts.split(",") if c.strip()]:
-            arch = vocab.resolve("concept", name, vocabularies.ARCH)
-            if arch is not None:
-                iri = f"{NS}concepts/arch/{arch}"
-            else:
-                concept = resolve_or_report(vocab, "concept", name, lang)
-                if concept is None:
-                    status = EXIT_UNKNOWN_ID
-                    continue
-                iri = f"{NS}concepts/{lang}/{concept}"
-            statements.append(statement(verb, iri, "language", categories,
+            # A teach-back's Concepts are Architecture Concepts unless the pack has the id.
+            in_pack = vocab.resolve("concept", name, lang) is not None
+            in_arch = vocab.resolve("concept", name, vocabularies.ARCH) is not None
+            scope = lang if in_pack and not in_arch else vocabularies.ARCH
+            statements.append(statement(verb, f"{NS}concepts/{scope}/{name}", "language", categories,
                                         {"success": verb == "passed", "score": {"scaled": scaled}}))
     with locked():
         session = load_session() or session
         if not recording(session):
             return 0
         if args.event == "interacted":
-            statements = [st for st in statements
-                          if not already_today("interacted", st["object"]["id"])]
-        append(session, statements)
-    return status
+            resolved = [held.resolve_statement(st, vocab)[0] for st in statements]
+            statements = [st for st in resolved if not already_today("interacted", st["object"]["id"])]
+        record_or_hold(session, statements, vocab)
+    return 0
 
 
 def cmd_session_end(args) -> int:
@@ -738,6 +748,14 @@ def cmd_session_end(args) -> int:
 def debrief_offers(session: dict, offer_remote: bool) -> list[str]:
     """At most one offer to add a remote, and a one-time offer to link this host's account."""
     offers = []
+    unchecked = held_queue().unchecked()
+    if unchecked:
+        items = "; ".join(
+            f"{held.describe(e['ref'])} ({e['lines']} line{'s' if e['lines'] != 1 else ''})"
+            for e in unchecked
+        )
+        offers.append(f"Held back, not in the profile yet: {items}. Check each names a public "
+                      "technology or pattern, not something from this repo's own code.")
     home = hosting.kind_of(identities()[0])
     if offer_remote and home in ("github", "gitlab"):
         provider = hosting.Provider(home)
@@ -766,7 +784,11 @@ def debrief_offers(session: dict, offer_remote: bool) -> list[str]:
 def stop_recording(session: dict, flag: str) -> None:
     """Discard the session's uncommitted lines and record nothing more. Call under the lock."""
     if profile_exists():
-        discard(set(session.get("lines", [])))
+        ids = set(session.get("lines", []))
+        discard(ids)
+        queue = held_queue()
+        queue.drop_ids(ids)
+        queue.save()
     session[flag] = True
     session["lines"] = []
     save_session(session)
@@ -912,6 +934,32 @@ def cmd_sync(args) -> int:
     return 0
 
 
+def cmd_held(args) -> int:
+    """List, confirm, discard or note the proposal PR for Held Evidence."""
+    with locked():
+        queue = held_queue()
+        if args.action == "list":
+            print(json.dumps(queue.listing(), indent=2))
+            return 0
+        if args.ref not in queue.refs:
+            print(f"nothing held for {args.ref}", file=sys.stderr)
+            return EXIT_UNKNOWN_ID
+        if args.action == "discard":
+            dropped = queue.drop_ref(args.ref)
+            queue.save()
+            print(f"Profile: dropped {dropped} held line{'s' if dropped != 1 else ''} "
+                  f"for {held.describe(args.ref)}.")
+        elif args.action == "confirm":
+            queue.refs[args.ref]["status"] = "proposed"
+            queue.save()
+            print(json.dumps(held.draft(args.ref), indent=2, ensure_ascii=False))
+        elif args.action == "pr":
+            queue.refs[args.ref]["pr"] = args.url
+            queue.save()
+            print(f"Profile: noted the proposal for {held.describe(args.ref)}.")
+    return 0
+
+
 def cmd_decline(args) -> int:
     state_dir().mkdir(parents=True, exist_ok=True)
     (state_dir() / "declined").write_text(midnight(today()) + "\n", encoding="utf-8")
@@ -990,6 +1038,16 @@ def main(argv: list[str] | None = None) -> int:
     read.set_defaults(func=cmd_read)
 
     commands.add_parser("show", help="print the profile summary").set_defaults(func=cmd_show)
+
+    held_cmd = commands.add_parser("held", help="Held Evidence: list, confirm, discard, pr")
+    held_actions = held_cmd.add_subparsers(dest="action", required=True)
+    held_actions.add_parser("list")
+    for action in ("confirm", "discard"):
+        held_actions.add_parser(action).add_argument("ref")
+    pr = held_actions.add_parser("pr")
+    pr.add_argument("ref")
+    pr.add_argument("url")
+    held_cmd.set_defaults(func=cmd_held)
 
     commands.add_parser(
         "decline", help="remember that the developer declined a Profile Repo"

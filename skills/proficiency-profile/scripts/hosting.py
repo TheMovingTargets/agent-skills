@@ -142,3 +142,17 @@ class Provider:
         if self.kind == "github":
             return f"{user_id}+{login}@users.noreply.github.com"
         return f"{user_id}-{login}@users.noreply.gitlab.com"
+
+
+def pr_state(url: str) -> str | None:
+    """OPEN, MERGED or CLOSED for a proposal PR on GitHub, or None if gh can't tell."""
+    if shutil.which("gh") is None:
+        return None
+    try:
+        result = subprocess.run(["gh", "pr", "view", url, "--json", "state"],
+                                capture_output=True, text=True, timeout=60)
+    except (OSError, subprocess.TimeoutExpired):
+        return None
+    if result.returncode != 0:
+        return None
+    return json.loads(result.stdout).get("state")

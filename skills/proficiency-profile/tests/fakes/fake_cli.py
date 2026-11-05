@@ -7,6 +7,7 @@ Driven by environment variables:
   FAKE_SIGNED_IN     "1" if the CLI is signed in
   FAKE_LOGIN         the signed-in account's login / username
   FAKE_ID            the signed-in account's numeric id
+  FAKE_PR_STATE      what `gh pr view` reports: OPEN, MERGED or CLOSED
 """
 import json
 import os
@@ -28,6 +29,9 @@ def bare(owner_name: str) -> Path:
     return remotes / f"{owner_name}.git"
 
 
+if args[:2] == ["pr", "view"]:
+    print(json.dumps({"state": os.environ.get("FAKE_PR_STATE", "OPEN")}))
+    sys.exit(0)
 if args[:2] == ["auth", "status"]:
     if signed_in:
         print(f"Logged in to {'github.com' if tool == 'gh' else 'gitlab.com'} as {login}")

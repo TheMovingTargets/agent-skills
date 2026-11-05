@@ -100,6 +100,7 @@ def main() -> int:
         ROOT / "skills" / "proficiency-profile" / "scripts" / "derive.py",
         ROOT / "skills" / "proficiency-profile" / "scripts" / "readme.py",
         ROOT / "skills" / "proficiency-profile" / "scripts" / "hosting.py",
+        ROOT / "skills" / "proficiency-profile" / "scripts" / "held.py",
         ROOT / "skills" / "proficiency-profile" / "VERSION",
     ]
     errors.extend(

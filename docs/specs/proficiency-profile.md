@@ -40,11 +40,11 @@ Each piece of Evidence is one trimmed **xAPI 2.0 Statement** per line, in append
 
 ```json
 {"id":"8d0c…(uuid4)","actor":{"objectType":"Agent","account":{"homePage":"https://github.com","name":"delhiryder"}},
- "verb":{"id":"https://w3id.org/xapi/devprof/verbs/practiced"},
- "object":{"objectType":"Activity","id":"https://w3id.org/xapi/devprof/concepts/csharp-dotnet/async.valuetask"},
+ "verb":{"id":"https://w3id.org/devprof/verbs/practiced"},
+ "object":{"objectType":"Activity","id":"https://w3id.org/devprof/concepts/csharp-dotnet/async.valuetask"},
  "result":{"success":true,"score":{"scaled":1.0}},
- "context":{"contextActivities":{"category":[{"id":"https://w3id.org/xapi/devprof/languages/csharp-dotnet"},{"id":"https://w3id.org/xapi/devprof/areas/backend"}]},
-            "extensions":{"https://w3id.org/xapi/devprof/extensions/dimension":"language"}},
+ "context":{"contextActivities":{"category":[{"id":"https://w3id.org/devprof/languages/csharp-dotnet"},{"id":"https://w3id.org/devprof/areas/backend"}]},
+            "extensions":{"https://w3id.org/devprof/extensions/dimension":"language"}},
  "timestamp":"2026-11-05T00:00:00Z"}
 ```
 
@@ -98,7 +98,7 @@ From [Grilling: what Evidence the skills emit](https://github.com/TheMovingTarge
 
 From [Grilling: the Concept and Area vocabularies](https://github.com/TheMovingTargets/agent-skills/issues/19), plus the proposal check from [Grilling: what timestamps and Concepts could reveal](https://github.com/TheMovingTargets/agent-skills/issues/30).
 
-The namespace is `{ns}` = `https://w3id.org/xapi/devprof/`. The IRIs don't need to resolve, but registering the w3id redirect is a build task.
+The namespace is `{ns}` = `https://w3id.org/devprof/`. The IRIs don't need to resolve, but registering the w3id redirect is a build task.
 
 | Vocabulary | IRI | Seed | Lives in |
 |---|---|---|---|
@@ -388,6 +388,7 @@ No ticket settled these details. They're the smallest choice that fits the decis
 - **Account names on github.com and gitlab.com use the login.** The alternative is the numeric user id, which survives a rename but is unreadable.
 - **The `record drill`, `record teachback` and `read` commands.** They take `--lang` so the Language scopes the Concept, and `read` was added as the triage lookup. Neither was spelled out in the integration ticket.
 - **Self-hosted Linked Identities use `https://<host-type>.invalid` as their homePage,** so no hostname is recorded.
+- **The namespace is `https://w3id.org/devprof/`, not `https://w3id.org/xapi/devprof/`.** On w3id, `/xapi/` belongs to ADL. Its catch-all already sent `/xapi/devprof/` to ADL's profiles page, and w3id lets a project change only its own directory. The namespace moved before any real Evidence used it ([#42](https://github.com/TheMovingTargets/agent-skills/issues/42)).
 
 ## 14. Build slices
 
@@ -404,4 +405,4 @@ Each slice is one build ticket, labelled `needs-triage`. "Blocked by" lists the 
 | 7 | Trinity integration | SKILL.md hooks, recording, the calibration bridge languages, triage reading the profile, the refresh-drill offer. | 3 |
 | 8 | Cognitive Reload integration | Orientation and pause hooks, teach-back recording, architecture pitch. | 3 |
 | 9 | Cognitive Reload with Trinity | One `session-start` and one `session-end` across both skills, plus the profile question folded into orientation. | 7, 8 |
-| 10 | Register the w3id namespace | A PR to `perma-id/w3id.org` for `/xapi/devprof/`. This one is for a human. | — |
+| 10 | Register the w3id namespace | A PR to `perma-id/w3id.org` for `/devprof/`. This one is for a human. | — |

@@ -1,6 +1,6 @@
 # Harnesses
 
-The Vocabulary of Harnesses: the coding-agent environments a developer works through. Each id becomes the Activity IRI `https://w3id.org/xapi/devprof/harnesses/<id>`, the object of the day's `use` Statement.
+The Vocabulary of Harnesses: the coding-agent environments a developer works through. Each id becomes the Activity IRI `https://w3id.org/devprof/harnesses/<id>`, the object of the day's `use` Statement.
 
 | id | harness | how the skill knows it |
 |---|---|---|

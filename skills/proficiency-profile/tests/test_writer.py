@@ -16,7 +16,7 @@ from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
 PROFILE = HERE.parent / "scripts" / "profile.py"
-NS = "https://w3id.org/xapi/devprof/"
+NS = "https://w3id.org/devprof/"
 ADL = "http://adlnet.gov/expapi/verbs/"
 ACTOR = {
     "objectType": "Agent",
